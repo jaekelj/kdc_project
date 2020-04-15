@@ -12,8 +12,8 @@
 #include <boost/circular_buffer.hpp>
 
 #include "Optimizer.hpp"
-// #include "Dvo.hpp"
-// #include "imageProcessing.hpp"
+#include <Parameters.hpp>
+#include <FeatureHandler.hpp>
 
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Geometry>
@@ -31,7 +31,7 @@
 
 class VioNode{
     public:
-        VioNode(ros::NodeHandle& nh){
+        VioNode(ros::NodeHandle& nh, const Parameters& p) : feature_handler_(p), optimizer_(p){
             odom_pub = nh.advertise<nav_msgs::Odometry>("VIO_odom", 50);
         };
 
@@ -39,16 +39,15 @@ class VioNode{
 
         void imuCallback(const sensor_msgs::Imu::ConstPtr& msg);
 
-        void imageCallback(const sensor_msgs::Image::ConstPtr& msg);
+        void imageCallback(const sensor_msgs::ImageConstPtr &cam0, const sensor_msgs::ImageConstPtr &cam1);
     
-        std::string IMU_TOPIC;
-
     private:
 
         ros::Publisher odom_pub;
 
         Optimizer optimizer_;
 
+        FeatureHandler feature_handler_;
 
         uint64_t prev_imu_msg_time = 0;
 

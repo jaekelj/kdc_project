@@ -45,8 +45,13 @@
 #include <iostream>
 #include <fstream>
 #include <stdlib.h>
+#include <map>
 
-
+// Local includes
+#include <FeatureHandler.hpp>
+#include <Parameters.hpp>
+#include <StereoLandmarkFactors.hpp>
+#include <Sparsifier.h>
 
 using namespace gtsam;
 
@@ -55,6 +60,14 @@ using symbol_shorthand::V; //velocity
 using symbol_shorthand::B; //bias
 using symbol_shorthand::L; //landmark
 
+struct Landmark{
+    Landmark(uint64_t id) : id(id), isStereo_(true){}
+    bool isStereo_;
+    Landmark(){};
+    uint64_t id; //landmark ID
+    std::map<int, Eigen::Vector4d> observations; // cameraID vs measurement in 2D
+    bool factorAdded;
+};
 
 
 class Optimizer{
@@ -66,6 +79,8 @@ class Optimizer{
         NavState prev_state_, prop_state_;
         imuBias::ConstantBias prev_bias_;
         PreintegrationType *imu_preintegrated_;
+
+        Parameters p_;
 
         float accel_noise_sigma = 2.0e-2;
         float gyro_noise_sigma = 1.6968e-3;
@@ -81,19 +96,26 @@ class Optimizer{
 
         uint64_t previous_frame_time = 0;
 
+        void setParams();
+
+        std::vector<Pose3> P_IMU_CAML_;
+        std::vector<Pose3> P_IMU_CAMR_;
+
         boost::circular_buffer<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> imu_buffer_;
-        boost::circular_buffer<std::pair<uint64_t, geometry_msgs::PoseWithCovariance>> image_buffer_;
+        boost::circular_buffer<std::pair<uint64_t, std::vector<FeatureHandler::BackendFeature>>> image_buffer_;
 
         std::thread optimization_thread_;
 
         std::chrono::high_resolution_clock::time_point t1_; 
         std::chrono::high_resolution_clock::time_point t2_; 
 
+        std::map<uint64_t, Landmark*, std::less<uint64_t>, Eigen::aligned_allocator<Landmark> > map_;
 
-
+        std::map<int, std::map<int,Landmark*> > stateMap_;
+        // std::map<int,Landmark*> idLandmarks_;
 
     public:
-        Optimizer(){
+        Optimizer(const Parameters& p) : p_(p){
             graph_ = gtsam::NonlinearFactorGraph();
             pose_noise_model_ = noiseModel::Diagonal::Sigmas((Vector(6) << 1e-2, 1e-2,1e-2,1e-2,1e-2,1e-2).finished());
             velocity_noise_model_ = noiseModel::Isotropic::Sigma(3,1e-10);
@@ -107,14 +129,13 @@ class Optimizer{
 
         void startThread(){
             optimization_thread_ = std::thread(&Optimizer::optimizationLoop, this);
-
         };
 
         void initializeGraph(uint64_t);
 
         void addImuFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> data_to_add);
 
-        void addImageFactor(std::pair<uint64_t, geometry_msgs::PoseWithCovariance>);
+        void addProjectionFactor(const std::vector<FeatureHandler::BackendFeature>& features);
 
         void optimizationLoop();
 
@@ -126,7 +147,7 @@ class Optimizer{
             imu_buffer_.push_back(imu_msg);
         };
 
-        void addImageMeasurement(std::pair<uint64_t, geometry_msgs::PoseWithCovariance> image_msg){
+        void addImageMeasurement(std::pair<uint64_t, std::vector<FeatureHandler::BackendFeature>> image_msg){
             image_buffer_.push_back(image_msg);
         };
 
