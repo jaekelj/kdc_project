@@ -16,7 +16,20 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   geometry_msgs
   eigen_conversions
+  message_generation
 )
+
+add_message_files(
+  FILES
+  Rotations.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  geometry_msgs
+)
+
 
 set(CMAKE_CXX_FLAGS "-O3 -I/usr/local/opt/llvm/include")
 set(CMAKE_CXX_FLAGS "-march=native")
@@ -30,6 +43,8 @@ catkin_package(
 
 # file(GLOB TARGET_SRC src/*.cpp)
 set(TARGET_SRC
+        src/Parameters.cpp
+        src/FeatureHandler.cpp
         src/utils.cpp
       	src/Optimizer.cpp
 )
@@ -38,10 +53,10 @@ include_directories(${OpenCV_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} ${GTSAM_INCLUDE
 
 
 add_library(kdc_project ${TARGET_SRC})
-target_link_libraries(kdc_project ${OpenCV_LIBS} ${GTSAM_LIBS})
+target_link_libraries(kdc_project ${OpenCV_LIBS} ${GTSAM_LIBS} ${catkin_LIBRARIES})
 
-add_executable(VIO_NODE src/VioNode.cpp)
-target_link_libraries(VIO_NODE 
+add_executable(vio_node src/VioNode.cpp)
+target_link_libraries(vio_node 
 			${catkin_LIBRARIES} 
 			${OpenCV_LIBRARIES} 
 			gtsam

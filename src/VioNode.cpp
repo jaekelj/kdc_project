@@ -17,7 +17,7 @@ void VioNode::imuCallback(const sensor_msgs::Imu::ConstPtr& msg){
     }
 
     Eigen::Matrix<double,7,1> imuMeasurement;
-    imuMeasurement << (msg_time - prev_imu_msg_time)/1e9, linear_acc , angular_vel; //TODO replace with IMU period
+    imuMeasurement << (msg_time - prev_imu_msg_time) / 1e9, linear_acc , angular_vel; //TODO replace with IMU period
 
     std::pair<uint64_t,Eigen::Matrix<double,7,1>> msg_to_push(msg_time, imuMeasurement);
     prev_imu_msg_time = msg_time;
@@ -26,6 +26,7 @@ void VioNode::imuCallback(const sensor_msgs::Imu::ConstPtr& msg){
 
 void VioNode::imageCallback(const sensor_msgs::ImageConstPtr &cam0, const sensor_msgs::ImageConstPtr &cam1)
 {
+    // std::cout << " "
     cv_bridge::CvImageConstPtr cam0_ptr = cv_bridge::toCvCopy(cam0, sensor_msgs::image_encodings::MONO8);
     cv_bridge::CvImageConstPtr cam1_ptr = cv_bridge::toCvCopy(cam1, sensor_msgs::image_encodings::MONO8);
 

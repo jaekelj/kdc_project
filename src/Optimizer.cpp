@@ -6,6 +6,8 @@
 
 void Optimizer::initializeGraph(uint64_t current_time){
 
+
+    setParams();
     GaussNewtonParams parameters;
     parameters.setVerbosity("ERROR");
 
@@ -119,13 +121,26 @@ std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> Optimizer::getImuData
 
 void Optimizer::setParams(){   
     for (int i = 0; i < p_.num_pairs; i++){
-        Rot3 cam_rot_imu_camL(Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor>>(p_.R_imu_camL[i].ptr<double>(),p_.R_imu_camL[i].rows,p_.R_imu_camL[i].cols));
-        Point3 cam_trans_imu_camL(Eigen::Map<Eigen::Matrix<double,1,3,Eigen::RowMajor>>(p_.t_imu_camL[i].ptr<double>(),p_.t_imu_camL[i].rows, p_.t_imu_camL[i].cols));
+        cv::Mat tmp_R;
+        cv::Mat tmp_t;       
+
+        p_.t_imu_camL[i].copyTo(tmp_t);
+        tmp_t = tmp_t.t();
+        tmp_t.convertTo(tmp_t, CV_64F);
+        p_.R_imu_camL[i].convertTo(tmp_R, CV_64F);
+
+        Rot3 cam_rot_imu_camL(Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor>>(tmp_R.ptr<double>(),tmp_R.rows,tmp_R.cols));
+        Point3 cam_trans_imu_camL(Eigen::Map<Eigen::Matrix<double,1,3,Eigen::RowMajor>>(tmp_t.ptr<double>(),tmp_t.rows, tmp_t.cols));
         P_IMU_CAML_.push_back(Pose3(cam_rot_imu_camL, cam_trans_imu_camL));
 
-        Rot3 cam_rot_imu_camR(Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor>>(p_.R_imu_camR[i].ptr<double>(),p_.R_imu_camR[i].rows,p_.R_imu_camR[i].cols));
-        Point3 cam_trans_imu_camR(Eigen::Map<Eigen::Matrix<double,1,3,Eigen::RowMajor>>(p_.t_imu_camR[i].ptr<double>(),p_.t_imu_camR[i].rows,p_.t_imu_camR[i].cols));
-        P_IMU_CAMR_.push_back(Pose3( cam_rot_imu_camR, cam_trans_imu_camR));
+        p_.t_imu_camR[i].copyTo(tmp_t);
+        tmp_t = tmp_t.t();
+        tmp_t.convertTo(tmp_t, CV_64F);
+        p_.R_imu_camR[i].convertTo(tmp_R, CV_64F);
+
+        Rot3 cam_rot_imu_camR(Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor>>(tmp_R.ptr<double>(),tmp_R.rows,tmp_R.cols));
+        Point3 cam_trans_imu_camR(Eigen::Map<Eigen::Matrix<double,1,3,Eigen::RowMajor>>(tmp_t.ptr<double>(),tmp_t.rows, tmp_t.cols));
+        P_IMU_CAMR_.push_back(Pose3(cam_rot_imu_camR, cam_trans_imu_camR));
     }
 }
 
@@ -148,14 +163,11 @@ void Optimizer::addProjectionFactor(const std::vector<FeatureHandler::BackendFea
         {
             // First assume both camera has seen the landmark
             bool stereo_obs = true;
-            total_counter++;
-            Eigen::Vector2d left_p(measurement.coordinate_L_.x, measurement.coordinate_L_.y);
-            Eigen::Vector2d right_p(measurement.coordinate_R_.x, measurement.coordinate_R_.y);
+            Eigen::Vector2d left_p((double) measurement.coordinate_L_.x, (double) measurement.coordinate_L_.y);
+            Eigen::Vector2d right_p((double) measurement.coordinate_R_.x, (double) measurement.coordinate_R_.y);
             uint64_t id = measurement.fid_;
             int pair_id = 0;
-
-            // std::cout << "adding " << id << std::endl;
-
+            
             if(std::isnan(right_p[0])){ // if right point is valid
                     stereo_obs = false;
                     continue;
@@ -179,13 +191,18 @@ void Optimizer::addProjectionFactor(const std::vector<FeatureHandler::BackendFea
                 PinholeCamera<Cal3_S2>::MeasurementVector monoMeasured;
 
                 // Using propagated state for feature prediction
-                const Pose3 leftPose = prop_state_.pose().compose(P_IMU_CAML_[pair_id]);
-                const Pose3 rightPose = prop_state_.pose().compose(P_IMU_CAMR_[pair_id]);
+                const Pose3 leftPose = prev_state_.pose().compose(P_IMU_CAML_[pair_id]);
+                const Pose3 rightPose = prev_state_.pose().compose(P_IMU_CAMR_[pair_id]);
                 const Cal3_S2 monoCal_left(p_.intrinsics_vec_L[pair_id]);
                 const Cal3_S2 monoCal_right(p_.intrinsics_vec_R[pair_id]);
                 const PinholeCamera<Cal3_S2> leftCamera_i(leftPose, monoCal_left);
-
                 const PinholeCamera<Cal3_S2> rightCamera_i(rightPose, monoCal_right);
+
+                // std::cout << "left cam is " << p_.intrinsics_vec_L[pair_id] << std::endl;
+                // std::cout << "right cam is " << p_.intrinsics_vec_R[pair_id] << std::endl;
+                // std::cout << "left point is " << Point2(left_p[0],left_p[1]) << std::endl; 
+                // std::cout << "right point is " << Point2(right_p[0],right_p[1]) << std::endl; 
+
                 monoCameras.push_back(leftCamera_i);
                 monoMeasured.push_back(Point2(left_p[0],left_p[1]));
                 monoCameras.push_back(rightCamera_i);
@@ -198,8 +215,14 @@ void Optimizer::addProjectionFactor(const std::vector<FeatureHandler::BackendFea
                 TriangulationResult result_ = gtsam::triangulateSafe(monoCameras, monoMeasured, triangulationParam);
 
                 Point3 pos_prior;
+                total_counter++;
                 if (!result_)
                 {
+                    // std::cout << "result is " << result_ << std::endl;
+                    // std::cout << "left cam is " << P_IMU_CAML_[pair_id] << std::endl;
+                    // // leftCamera_i.print();
+                    // std::cout << "right cam is " << P_IMU_CAMR_[pair_id] << std::endl;
+                    // rightCamera_i.print();
                     continue;
                 }
                 else
@@ -208,18 +231,16 @@ void Optimizer::addProjectionFactor(const std::vector<FeatureHandler::BackendFea
                     pos_prior = *result_;
                 }
 
+                // std::cout << "adding point " << id << std::endl;
                 Landmark *curr_landmark = map_.at(id);
-
                 stateMap_.at(state_index_).insert(std::pair<int,Landmark*>(id,curr_landmark)); 
-
                 Eigen::Vector4d measurement(left_p[0],left_p[1],right_p[0],right_p[1]);
-
                 if (!curr_landmark->factorAdded && curr_landmark->isStereo_)
                 {
                     curr_landmark->observations.insert(std::make_pair(state_index_,measurement));
                     if (curr_landmark->observations.size()>1)
                     {
-                        visionVariables_.insert(L(id), pos_prior);
+                        initial_values_.insert(L(id), pos_prior);
                         bool added_prior = false;
                         for(auto const &obs : curr_landmark->observations)
                         {
@@ -251,7 +272,7 @@ void Optimizer::addProjectionFactor(const std::vector<FeatureHandler::BackendFea
                 }
             }
         }
-    std::cout << "Accepted " << accepted_counter << " of " << total_counter << " features" << std::endl;
+    // std::cout << "Accepted " << accepted_counter << " of " << total_counter << " features" << std::endl;
 }
 
 void Optimizer::optimizationLoop(){
@@ -277,9 +298,7 @@ void Optimizer::optimizationLoop(){
         if (image_buffer_.size() > 1){
             ROS_ERROR_STREAM("WARNING: Backend can't keep up");
         }
-        else{
-            std::cout << "processing new frame" << std::endl;
-        }
+
         state_index_ ++;
         std::map<int, Landmark*> new_landmark_map;
         stateMap_.insert(std::make_pair(state_index_,new_landmark_map));
@@ -306,8 +325,7 @@ void Optimizer::optimizationLoop(){
         GaussNewtonOptimizer optimizer(graph_, initial_values_);
         result = optimizer.optimize();
 
-        prev_state_ = NavState(result.at<Pose3>(X(state_index_)),
-                            result.at<Vector3>(V(state_index_)));
+        prev_state_ = NavState(result.at<Pose3>(X(state_index_)), result.at<Vector3>(V(state_index_)));
 
         prev_bias_ = result.at<imuBias::ConstantBias>(B(state_index_));
 

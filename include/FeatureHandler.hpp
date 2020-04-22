@@ -120,11 +120,7 @@ private:
         return;
     }
 
-    void undistort(
-        const std::vector<cv::Point2f>& original_points, 
-        const std::vector<cv::Point2f>& undistorted_points, 
-        int index,
-        bool l_cam);
+    void undistort(const std::vector<cv::Point2f>& original_points, std::vector<cv::Point2f>& undistorted_points, int index, bool l_cam);
 
     void warpPoints(const cv::Matx33f& R, const std::vector<cv::Point2f>& in_points, std::vector<cv::Point2f>& out_points);
 

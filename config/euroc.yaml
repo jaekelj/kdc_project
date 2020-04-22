@@ -1,79 +1,103 @@
 %YAML:1.0
 
-camera_model: pinhole
-distortion_model: "radtan"
 image_width: 752
 image_height: 480
+num_pairs: 1
+
+#================================ Camera Calibrations Settings ================================
+
+## Each matrix below takes a point from the  imu frame -> camera frame
+extrinsics: 
+  - left: !!opencv-matrix  
+      rows: 4
+      cols: 4
+      dt: d
+      data: [0.014865542981794,   0.999557249008346,  -0.025774436697440,   0.065222909535531,
+            -0.999880929698575,   0.014967213324719,   0.003756188357967,  -0.020706385492719,
+            0.004140296794224,   0.025715529947966,   0.999660727177902,  -0.008054602460030,
+            0,                   0,                   0,   1.000000000000000]
 
 
-T_cam0_imu: !!opencv-matrix
+    right: !!opencv-matrix
+      rows: 4
+      cols: 4
+      dt: d
+      data: [0.012555267089103,   0.999598781151433,  -0.025389800891747,  -0.044901980682509,
+              -0.999755099723116,   0.013011905181504,   0.017900583825251,  -0.020569771258915,
+              0.018223771455443,   0.025158836311552,   0.999517347077547,  -0.008638135126028,
+              0,                   0,                   0,   1.000000000000000]
+
+
+T_W_imu: !!opencv-matrix
   rows: 4
   cols: 4
   dt: d
-  data: [0.014865542981794,   0.999557249008346,  -0.025774436697440,   0.065222909535531,
-          -0.999880929698575,   0.014967213324719,   0.003756188357967,  -0.020706385492719,
-          0.004140296794224,   0.025715529947966,   0.999660727177902,  -0.008054602460030,
-          0,                   0,                   0,   1.000000000000000]
+  data: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]
 
-cam0_distortion_coeffs: !!opencv-matrix    
-  rows: 1
-  cols: 4
-  dt: d
-  data: [-0.28340811, 0.07395907, 0.00019359, 1.76187114e-05]
+intrinsics: 
+  - left: !!opencv-matrix  
+      rows: 1
+      cols: 4
+      dt: d
+      data: [458.654, 457.296, 367.215, 248.375]
+    right: !!opencv-matrix
+      rows: 1
+      cols: 4
+      dt: d
+      data: [457.587, 456.134, 379.999, 255.238]
 
+distortion_coeffs: 
+  - left: !!opencv-matrix  
+      rows: 1
+      cols: 4
+      dt: d
+      data: [-0.28340811, 0.07395907, 0.00019359, 1.76187114e-05]
+    right: !!opencv-matrix
+      rows: 1
+      cols: 4
+      dt: d
+      data: [-0.28368365,  0.07451284, -0.00010473, -3.55590700e-05]
 
-cam0_intrinsics: !!opencv-matrix
-  rows: 1
-  cols: 4
-  dt: d
-  data: [458.654, 457.296, 367.215, 248.375]
-
-
-T_cam1_imu: !!opencv-matrix
-  rows: 4
-  cols: 4
-  dt: d
-  data: [0.012555267089103,   0.999598781151433,  -0.025389800891747,  -0.044901980682509,
-          -0.999755099723116,   0.013011905181504,   0.017900583825251,  -0.020569771258915,
-          0.018223771455443,   0.025158836311552,   0.999517347077547,  -0.008638135126028,
-          0,                   0,                   0,   1.000000000000000]
-T_cn_cnm1: !!opencv-matrix
-  rows: 4
-  cols: 4
-  dt: d
-  data: [0.999997256477881,   0.002312067192424,   0.000376008102415,  -0.110073808127187, 
-          -0.002317135723281,   0.999898048506644,   0.014089835846648,   0.000399121547014,
-          -0.000343393120525,  -0.014090668452714,   0.999900662637729,  -0.000853702503357, 
-          0,                   0,                   0,   1.000000000000000]
-
-cam1_distortion_coeffs: !!opencv-matrix   
-  rows: 1
-  cols: 4
-  dt: d
-  data: [-0.28368365,  0.07451284, -0.00010473, -3.55590700e-05]
-
-cam1_intrinsics: !!opencv-matrix
-  rows: 1
-  cols: 4
-  dt: d
-  data: [457.587, 456.134, 379.999, 255.238]
+#================================ IMU Params ================================
+sigma_a: 2.0e-2
+sigma_g: 1.6968e-3
+sigma_ba: 3.0e-2
+sigma_bg: 1.9393e-3
+preint_cov: 1.0e-3
+preint_bias_cov: 1.0e-5
 
 
-#================================ ROS Settings ================================
+#================================ Camera Noise Params ================================
+sigma_pixel: 1
 
-imu_topic: "/imu0"
-cam0_topic: "/cam0/image_raw"
-cam1_topic: "/cam1/image_raw"
+#================================ Optimization Params ================================
+max_iter: 5
+abs_tol: 1.0e-3
+rel_tol: 1.0e-3
+propagateAtImuRate: 0
+keyframe_spacing: 0.08
 
-#================================= Frontend Settings ===========================
+#================================ Debug Params ================================
+# To take features from a single pair, specify the pair number. If negative, backend will operate in multi-camera mode
+add_features: -1
 
+#================================ Frontend Params ================================
+ransac_threshold: 1
+num_features: 100
+min_dist: 30
+pyramid_levels: 3
+patch_size: 21
 grid_row: 4
 grid_col: 5
 grid_min_feature_num: 3
-grid_max_feature_num: 4
-pyramid_levels: 3
-patch_size: 3
-fast_threshold: 10
-klt_max_iteration: 30
-klt_track_precision: 0.01
+grid_max_feature_num: 7
+
+#================================ ROS Topics ================================
+
+imu_topic: "/imu0"
+image_topics:
+  - left: "/cam0/image_raw"
+    right: "/cam1/image_raw"
+
+visulize_pub_topic: "stereo_visualize_img"
 

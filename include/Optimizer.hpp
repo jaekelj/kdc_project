@@ -29,7 +29,7 @@
 
 //Eigen includes
 #include <eigen3/Eigen/Dense>
-#include <eigen3/Eigen/Geometry>
+// #include <eigen3/Eigen/Geometry>
 #include <eigen3/Eigen/StdVector>
 
 //Boost includes

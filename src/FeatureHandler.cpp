@@ -1,9 +1,6 @@
 #include <FeatureHandler.hpp>
 
-std::vector<std::vector<FeatureHandler::BackendFeature>> FeatureHandler::fundamentalMatrixRANSAC(
-    std::vector<std::vector<Feature>>& features, 
-    const sensor_msgs::ImageConstPtr& cam0,
-    const sensor_msgs::ImageConstPtr& cam1)
+std::vector<std::vector<FeatureHandler::BackendFeature>> FeatureHandler::fundamentalMatrixRANSAC(std::vector<std::vector<Feature>>& features, const sensor_msgs::ImageConstPtr& cam0, const sensor_msgs::ImageConstPtr& cam1)
 {
     cv_bridge::CvImageConstPtr cam0_ptr = cv_bridge::toCvCopy(cam0, sensor_msgs::image_encodings::MONO8);
     cv_bridge::CvImageConstPtr cam1_ptr = cv_bridge::toCvCopy(cam1, sensor_msgs::image_encodings::MONO8);
@@ -70,15 +67,19 @@ std::vector<std::vector<FeatureHandler::BackendFeature>> FeatureHandler::fundame
         undistort(distorted_points_prev_r,points_prev_undistort_r[0],pair_id,false);
         undistort(distorted_points_curr_r,points_curr_undistort_r[0],pair_id,false);
 
+        // std::vector<uchar> status_boundary(distorted_points_prev_l.size());
+
         std::vector<uchar> status_L;
         std::vector<uchar> status_R;
 
-        cv::findFundamentalMat(points_prev_undistort_l[0],points_curr_undistort_l[0] ,cv::FM_RANSAC, 1, 0.99, status_L);
-        cv::findFundamentalMat(points_prev_undistort_r[0],points_curr_undistort_r[0] ,cv::FM_RANSAC, 1, 0.99, status_R);  
+        cv::findFundamentalMat(points_prev_undistort_l[0], points_curr_undistort_l[0] ,cv::FM_RANSAC, 1, 0.99, status_L);
+        cv::findFundamentalMat(points_prev_undistort_r[0], points_curr_undistort_r[0] ,cv::FM_RANSAC, 1, 0.99, status_R);  
 
         for (int j = 0; j < status_L.size(); j++){
             if (status_L[j] == 1 && status_R[j] == 1){
-                inliers_overall.push_back(std::make_pair(j,0));
+                if(inBorder(points_curr_undistort_l[0][j]) && inBorder(points_curr_undistort_r[0][j])){
+                    inliers_overall.push_back(std::make_pair(j,0));
+                }
             }
         }
 
@@ -124,7 +125,6 @@ std::vector<std::vector<FeatureHandler::BackendFeature>> FeatureHandler::fundame
                         max_ransac_fid_++;
                     }
                 }
-               
                 else
                 {
                     feature_map_.insert(std::make_pair(feature.fid_, max_ransac_fid_));
@@ -145,13 +145,8 @@ void FeatureHandler::setPrevImage(const cv::Mat& img)
 }
 
 
-void FeatureHandler::undistort(
-    const std::vector<cv::Point2f> &original_points,
-    const std::vector<cv::Point2f> &undistorted_points,
-    int pair_id,
-    bool l_cam)
+void FeatureHandler::undistort(const std::vector<cv::Point2f> &original_points, std::vector<cv::Point2f> &undistorted_points, int pair_id, bool l_cam)
 {
-
     if (l_cam)
     {
         cv::undistortPoints(original_points, undistorted_points, p_.intrinsics_L[pair_id], p_.distortion_coeffs_L[pair_id], cv::noArray(), p_.intrinsics_L[pair_id]);
@@ -187,31 +182,18 @@ void FeatureHandler::initializeFeatures(const cv::Mat &camL_img, const cv::Mat &
         if (status[i])
         {
             counter++;
-            coordinates_L.push_back(corners_L[i]);
-            coordinates_R.push_back(corners_R[i]);
-            ids.push_back(counter + max_id_);
-            lifetimes.push_back(1);
-            pair_ids.push_back(pair_id);
-            int gid = assignGridId(corners_L[i]);
-            grid_ids.push_back(gid);
+            Feature feature;
+            feature.coordinate_L_ = corners_L[i];
+            feature.coordinate_R_ = corners_R[i];
+            feature.fid_ = counter + max_id_;
+            feature.lifetime_ = 1;
+            feature.pair_id_ = pair_id;
+            tracked_grid_features_[pair_id][assignGridId(corners_L[i])].push_back(feature);
         }
     }
-
     max_id_ += counter;
-    for (int j = 0; j < coordinates_L.size(); j++)
-    {
-        Feature feature;
-        feature.coordinate_L_ = coordinates_L[j];
-        feature.coordinate_R_ = coordinates_R[j];
-        feature.fid_ = ids[j];
-        feature.lifetime_ = lifetimes[j];
-        feature.pair_id_ = pair_ids[j];
-        tracked_grid_features_[pair_id][grid_ids[j]].push_back(feature);
-    }
-
     prev_img_L_.push_back(camL_img);
     prev_img_R_.push_back(camR_img);
-
 }
 
 void FeatureHandler::stereoMatch(
@@ -240,40 +222,38 @@ void FeatureHandler::stereoMatch(
         if (status[i]) counter++;
     }
 
-    // std::cout << "matched " << counter << " features" << std::endl;
-
     if (pts_imgL.size() == 0 || pts_imgR.size() == 0){
         return;
     }
 
-    // Remove outliers accoirding to the known E matrix
-    std::vector<cv::Point2f> pts_imgL_undistorted(0);
-    std::vector<cv::Point2f> pts_imgR_undistorted(0);
+    // // Remove outliers accoirding to the known E matrix
+    // std::vector<cv::Point2f> pts_imgL_undistorted(0);
+    // std::vector<cv::Point2f> pts_imgR_undistorted(0);
 
-    cv::undistortPoints(pts_imgL, pts_imgL_undistorted, p_.intrinsics_L[pair_id], p_.distortion_coeffs_L[pair_id], cv::Matx33f::eye());
-    cv::undistortPoints(pts_imgR, pts_imgR_undistorted, p_.intrinsics_R[pair_id], p_.distortion_coeffs_R[pair_id], cv::Matx33f::eye());
+    // cv::undistortPoints(pts_imgL, pts_imgL_undistorted, p_.intrinsics_L[pair_id], p_.distortion_coeffs_L[pair_id], p_.intrinsics_L[pair_id]);
+    // cv::undistortPoints(pts_imgR, pts_imgR_undistorted, p_.intrinsics_R[pair_id], p_.distortion_coeffs_R[pair_id], p_.intrinsics_R[pair_id]);
 
-    float episilon = 2.0;
+    // float episilon = 10.0;
 
-    cv::Mat ptL_homo = cv::Mat::ones(3,1,CV_32F);
-    cv::Mat ptR_homo = cv::Mat::ones(3,1,CV_32F);
-    cv::Mat epipolar_line_1;
+    // cv::Mat ptL_homo = cv::Mat::ones(3,1,CV_32F);
+    // cv::Mat ptR_homo = cv::Mat::ones(3,1,CV_32F);
+    // cv::Mat epipolar_line_1;
 
-    for (int i = 0; i < pts_imgL_undistorted.size(); i++)
-    {
-        if (status[i] == 0)
-            continue;
-        ptL_homo.at<float>(0,0) = pts_imgL_undistorted[i].x;
-        ptL_homo.at<float>(1,0) = pts_imgL_undistorted[i].y;
-        ptR_homo.at<float>(0,0) = pts_imgR_undistorted[i].x;
-        ptR_homo.at<float>(1,0) = pts_imgR_undistorted[i].y;
-        epipolar_line_1 = p_.F[pair_id] * ptL_homo; 
-        cv::Mat temp = (ptR_homo.t()*epipolar_line_1);
-        float distance = fabs(temp.at<float>(0,0)) / sqrt(epipolar_line_1.at<float>(0,0) * epipolar_line_1.at<float>(0,0) + epipolar_line_1.at<float>(1,0) * epipolar_line_1.at<float>(1,0));
-        if (distance > episilon){
-            status[i] = 0;
-        }
-    }
+    // for (int i = 0; i < pts_imgL_undistorted.size(); i++)
+    // {
+    //     if (status[i] == 0)
+    //         continue;
+    //     ptL_homo.at<float>(0,0) = pts_imgL_undistorted[i].x;
+    //     ptL_homo.at<float>(1,0) = pts_imgL_undistorted[i].y;
+    //     ptR_homo.at<float>(0,0) = pts_imgR_undistorted[i].x;
+    //     ptR_homo.at<float>(1,0) = pts_imgR_undistorted[i].y;
+    //     epipolar_line_1 = p_.F[pair_id] * ptL_homo; 
+    //     cv::Mat temp = (ptR_homo.t()*epipolar_line_1);
+    //     float distance = fabs(temp.at<float>(0,0)) / sqrt(epipolar_line_1.at<float>(0,0) * epipolar_line_1.at<float>(0,0) + epipolar_line_1.at<float>(1,0) * epipolar_line_1.at<float>(1,0));
+    //     if (distance > episilon){
+    //         status[i] = 0;
+    //     }
+    // }
 }
 
 void FeatureHandler::temporalMatch(const cv::Mat &camL_img, const cv::Mat &camR_img, uint64_t current_time, int pair_id)
@@ -356,6 +336,7 @@ void FeatureHandler::temporalMatch(const cv::Mat &camL_img, const cv::Mat &camR_
             feature.prev_coordinate_R_ = coordinates_R[i];
             feature.coordinate_L_ = matched_pointsL[i];
             feature.coordinate_R_ = matched_pointsR[i];
+
             feature.fid_ = ids[i];
             feature.lifetime_ = lifetimes[i] + 1;
             feature.pair_id_ = pair_ids[i];
@@ -437,7 +418,6 @@ void FeatureHandler::addFeatures(const cv::Mat &camL_img, const cv::Mat &camR_im
             }
         }
     }
-    // std::cout << "added " << counter << " features" << std::endl;
     max_id_ += counter;
 }
 

@@ -1,9 +1,7 @@
 <launch>
   
-	<arg name="config_path_front" default = "$(find kdc_project)/config/euroc.yaml" />
-	<arg name="config_path_down" default = "$(find kdc_project)/config/euroc.yaml" />
-
-
-	<node name="vio_node" pkg="kdc_project" type="VIO_NODE" output="screen"> 
-  </node>
+	<arg name="config_path" default = "$(find kdc_project)/config/euroc.yaml" />
+	<node name="vio_node" pkg="kdc_project" type="vio_node" output="screen"> 
+		<param name="config_file_path" type="string" value="$(arg config_path)" />
+  	</node>
 </launch>
