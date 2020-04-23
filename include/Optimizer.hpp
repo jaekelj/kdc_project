@@ -52,6 +52,7 @@
 #include <Parameters.hpp>
 #include <StereoLandmarkFactors.hpp>
 #include <Sparsifier.h>
+#include <DynamicsFactor.hpp>
 
 using namespace gtsam;
 
