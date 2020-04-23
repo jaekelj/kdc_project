@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   eigen_conversions
   message_generation
+  blackbird
 )
 
 add_message_files(
@@ -28,6 +29,7 @@ generate_messages(
   DEPENDENCIES
   std_msgs
   geometry_msgs
+  blackbird
 )
 
 
@@ -56,10 +58,10 @@ add_library(kdc_project ${TARGET_SRC})
 target_link_libraries(kdc_project ${OpenCV_LIBS} ${GTSAM_LIBS} ${catkin_LIBRARIES})
 
 add_executable(vio_node src/VioNode.cpp)
-target_link_libraries(vio_node 
-			${catkin_LIBRARIES} 
-			${OpenCV_LIBRARIES} 
+target_link_libraries(vio_node
+			${catkin_LIBRARIES}
+			${OpenCV_LIBRARIES}
 			gtsam
-			${GTSAM_LIBRARIES} 
-			${EIGEN3_LIBRARIES} 
+			${GTSAM_LIBRARIES}
+			${EIGEN3_LIBRARIES}
 			kdc_project)

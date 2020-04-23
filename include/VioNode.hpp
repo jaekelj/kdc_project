@@ -27,7 +27,7 @@
 
 #include <opencv2/core/eigen.hpp>
 
-
+#include <blackbird/MotorRPM.h>
 
 class VioNode{
     public:
@@ -39,8 +39,10 @@ class VioNode{
 
         void imuCallback(const sensor_msgs::Imu::ConstPtr& msg);
 
+        void dynamicsCallback(const blackbird::MotorRPM::ConstPtr& msg);
+
         void imageCallback(const sensor_msgs::ImageConstPtr &cam0, const sensor_msgs::ImageConstPtr &cam1);
-    
+
     private:
 
         ros::Publisher odom_pub;
@@ -50,6 +52,8 @@ class VioNode{
         FeatureHandler feature_handler_;
 
         uint64_t prev_imu_msg_time = 0;
+
+        uint64_t prev_dynamics_msg_time = 0;
 
 };
 

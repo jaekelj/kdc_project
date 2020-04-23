@@ -4,7 +4,7 @@
 void VioNode::imuCallback(const sensor_msgs::Imu::ConstPtr& msg){
     // std::cout << "In IMU Callback" << std::endl;
     Eigen::Vector3d linear_acc, angular_vel;
-    Eigen::Quaterniond ahrs; 
+    Eigen::Quaterniond ahrs;
     tf::vectorMsgToEigen (msg->linear_acceleration, linear_acc);
     tf::vectorMsgToEigen (msg->angular_velocity, angular_vel);
     tf::quaternionMsgToEigen (msg->orientation, ahrs);
@@ -22,6 +22,28 @@ void VioNode::imuCallback(const sensor_msgs::Imu::ConstPtr& msg){
     std::pair<uint64_t,Eigen::Matrix<double,7,1>> msg_to_push(msg_time, imuMeasurement);
     prev_imu_msg_time = msg_time;
     optimizer_.addImuMeasurement(msg_to_push);
+}
+
+void VioNode::dynamicsCallback(const blackbird::MotorRPM::ConstPtr& msg){
+    // std::cout << "In Dynamics  Callback" << std::endl;
+    // std::vector<float> rotor_rpm = msg->rpm;
+
+    // Eigen::Vector4d rotor_rpm(msg->rpm.data());
+    Eigen::VectorXf rotor_rpm = Eigen::Map<Eigen::VectorXf, Eigen::Unaligned>(msg->rpm.data(), msg->rpm.size());
+
+    uint64_t msg_time = msg->header.stamp.toNSec();
+
+    if (prev_dynamics_msg_time == 0){
+        prev_dynamics_msg_time = msg_time;
+        return;
+    }
+
+    Eigen::Matrix<double,5,1> dynamicsMeasurement;
+    dynamicsMeasurement << (msg_time - prev_dynamics_msg_time) / 1e9, rotor_rpm;
+
+    std::pair<uint64_t,Eigen::Matrix<double,5,1>> msg_to_push(msg_time, dynamicsMeasurement);
+    prev_dynamics_msg_time = msg_time;
+    optimizer_.addDynamicsMeasurement(msg_to_push);
 }
 
 void VioNode::imageCallback(const sensor_msgs::ImageConstPtr &cam0, const sensor_msgs::ImageConstPtr &cam1)
@@ -50,8 +72,8 @@ void VioNode::imageCallback(const sensor_msgs::ImageConstPtr &cam0, const sensor
 
 
 int main(int argc, char **argv){
-    ros::init(argc, argv, "vio");   
-    ros::NodeHandle nh("~"); 
+    ros::init(argc, argv, "vio");
+    ros::NodeHandle nh("~");
 
     std::string file_path;
     nh.getParam("config_file_path", file_path);
