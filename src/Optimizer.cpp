@@ -99,6 +99,30 @@ void Optimizer::addImuFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double
 
 }
 
+void Optimizer::addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> data_to_add){
+    NonlinearFactorGraph dynamicsFactors_;
+    std::vector<int> dynamicsFactorTypes_;
+
+    for (std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>>::iterator it = data_to_add.begin() ; it != data_to_add.end(); ++it)
+    {
+        Eigen::Matrix<double,5,1> dynamicsMeasurement = it->second;
+        dynamics_preintegrated_->integrateMeasurement(Vector3(imuMeasurement[1],imuMeasurement[2],imuMeasurement[3]),
+                                           Vector3(imuMeasurement[4],imuMeasurement[5],imuMeasurement[6]),
+                                           imuMeasurement[0]); // TODO update line for dynamics
+    }
+
+
+    PreintegratedCombinedMeasurements *preint_dynamics = dynamic_cast<PreintegratedCombinedMeasurements*>(dynamics_preintegrated_);
+
+    DynamicsFactor dynamics_factor(X(state_index_-1), V(state_index_-1),
+                 X(state_index_  ), V(state_index_  ),
+                 B(state_index_-1), B(state_index_),
+                 *preint_dynamics); // TODO check
+
+    graph_.add(dynamics_factor);
+
+}
+
 std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> Optimizer::getImuData(uint64_t start_time, uint64_t end_time){
 
     std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> result;
@@ -114,6 +138,26 @@ std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> Optimizer::getImuData
 
         result.push_back(imu_buffer_[0]);
         imu_buffer_.pop_front();
+    }
+
+    return result;
+}
+
+std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> Optimizer::getDynamicsData(uint64_t start_time, uint64_t end_time){
+
+    std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> result;
+    while (dynamics_buffer_.size() > 0){
+        if (dynamics_buffer_[0].first < start_time){
+            dynamics_buffer_.pop_front();
+            continue;
+        }
+
+        if (dynamics_buffer_[0].first >= end_time || dynamics_buffer_.size() == 0){
+            break;
+        }
+
+        result.push_back(dynamics_buffer_[0]);
+        dynamics_buffer_.pop_front();
     }
 
     return result;

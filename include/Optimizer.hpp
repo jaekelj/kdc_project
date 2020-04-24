@@ -137,6 +137,8 @@ class Optimizer{
 
         void addImuFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> data_to_add);
 
+        void addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> data_to_add);
+
         void addProjectionFactor(const std::vector<FeatureHandler::BackendFeature>& features);
 
         void optimizationLoop();
@@ -162,6 +164,8 @@ class Optimizer{
         }
 
         std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> getImuData(uint64_t start_time, uint64_t end_time);
+
+        std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> getDynamicsData(uint64_t start_time, uint64_t end_time);
 
 };
 
