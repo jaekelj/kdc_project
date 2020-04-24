@@ -26,10 +26,11 @@ void VioNode::imuCallback(const sensor_msgs::Imu::ConstPtr& msg){
 
 void VioNode::dynamicsCallback(const blackbird::MotorRPM::ConstPtr& msg){
     // std::cout << "In Dynamics  Callback" << std::endl;
-    // std::vector<float> rotor_rpm = msg->rpm;
+    Eigen::Vector4d rotor_rpm;
 
-    // Eigen::Vector4d rotor_rpm(msg->rpm.data());
-    Eigen::VectorXf rotor_rpm = Eigen::Map<Eigen::VectorXf, Eigen::Unaligned>(msg->rpm.data(), msg->rpm.size());
+    for (int i = 0; i < msg->rpm.size(); ++i) {
+      rotor_rpm << msg->rpm[i];
+    }
 
     uint64_t msg_time = msg->header.stamp.toNSec();
 
