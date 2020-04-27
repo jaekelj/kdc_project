@@ -31,7 +31,7 @@
 
 class VioNode{
     public:
-        VioNode(ros::NodeHandle& nh, const Parameters& p) : feature_handler_(p), optimizer_(p){
+        VioNode(ros::NodeHandle& nh, const Parameters& p) : feature_handler_(p), optimizer_(p), gotIMU_(false){
             odom_pub = nh.advertise<nav_msgs::Odometry>("VIO_odom", 50);
         };
 
@@ -42,6 +42,8 @@ class VioNode{
         void imageCallback(const sensor_msgs::ImageConstPtr &cam0, const sensor_msgs::ImageConstPtr &cam1);
     
     private:
+
+        bool gotIMU_;
 
         ros::Publisher odom_pub;
 

@@ -60,13 +60,13 @@ void Parameters::readConfig(std::string file_path){
         t_camR_imu.push_back(tmpR(cv::Rect(3,0,1,3)));
 
         int curr_index = R_camL_imu.size() - 1;
-        cv::Mat T_camL_camR = tmpL*tmpR.inv();
-        R_camL_camR.push_back(T_camL_camR(cv::Rect(0,0,3,3)));
-        t_camL_camR.push_back(T_camL_camR(cv::Rect(3,0,1,3)));
-        t_camL_camR_hat.push_back(buildSkewSym(t_camL_camR[curr_index]));
+        cv::Mat T_camR_camL = tmpR*tmpL.inv();
+        R_camR_camL.push_back(T_camR_camL(cv::Rect(0,0,3,3)));
+        t_camR_camL.push_back(T_camR_camL(cv::Rect(3,0,1,3)));
+        t_camR_camL_hat.push_back(buildSkewSym(t_camR_camL[curr_index]));
         left_cam_extrinsics.push_back(intrinsics_L[curr_index]*tmpL(cv::Rect(0,0,4,3)));
         right_cam_extrinsics.push_back(intrinsics_R[curr_index]*tmpR(cv::Rect(0,0,4,3)));
-        baselines.push_back(cv::norm(t_camL_camR[curr_index]));
+        baselines.push_back(cv::norm(t_camR_camL[curr_index]));
 
         tmpL = tmpL.inv();
         tmpR = tmpR.inv();

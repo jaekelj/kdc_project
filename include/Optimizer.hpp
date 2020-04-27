@@ -51,8 +51,8 @@
 #include <FeatureHandler.hpp>
 #include <Parameters.hpp>
 #include <StereoLandmarkFactors.hpp>
-#include <Sparsifier.h>
-#include <DynamicsFactor.hpp>
+// #include <DynamicsFactor.hpp>
+#include <BatchFixedLagSmoother.h>
 
 using namespace gtsam;
 
@@ -73,7 +73,8 @@ struct Landmark{
 
 class Optimizer{
     private:
-        NonlinearFactorGraph graph_;
+        // NonlinearFactorGraph graph_;
+        BatchFixedLagSmoother graph_;
         noiseModel::Diagonal::shared_ptr pose_noise_model_;
         noiseModel::Diagonal::shared_ptr velocity_noise_model_;
         noiseModel::Diagonal::shared_ptr bias_noise_model_;
@@ -117,7 +118,18 @@ class Optimizer{
 
     public:
         Optimizer(const Parameters& p) : p_(p){
-            graph_ = gtsam::NonlinearFactorGraph();
+            LevenbergMarquardtParams params;
+            params.maxIterations = 5;
+            params.absoluteErrorTol = 1.0e-3;
+            params.relativeErrorTol = 1.0e-3;
+            params.diagonalDamping = true;
+            params.errorTol = 0;
+            params.setLinearSolverType("MULTIFRONTAL_CHOLESKY");
+            std::cout << " Linear Solver Type " << params.getLinearSolverType() << std::endl;
+
+            params.verbosityLM = LevenbergMarquardtParams::SUMMARY;
+            graph_ = BatchFixedLagSmoother(10, params);
+
             pose_noise_model_ = noiseModel::Diagonal::Sigmas((Vector(6) << 1e-2, 1e-2,1e-2,1e-2,1e-2,1e-2).finished());
             velocity_noise_model_ = noiseModel::Isotropic::Sigma(3,1e-10);
             bias_noise_model_ = noiseModel::Diagonal::Sigmas((Vector(6) << 0.05, 0.05, 0.05, 0.01,0.01,0.01).finished());
@@ -156,8 +168,9 @@ class Optimizer{
             return initialized_;
         }
 
-        std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> getImuData(uint64_t start_time, uint64_t end_time);
+        void marginalizeGraph();
 
+        std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> getImuData(uint64_t start_time, uint64_t end_time);
 };
 
 

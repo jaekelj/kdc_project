@@ -10,6 +10,9 @@ class DynamicsFactor : public NoiseModelFactor4<Pose3, Vector3, Pose3, Vector3>{
         Vector a;
         return a;
     }
+
+    // private:
+    //     PreintegratedDynamicsMeasurements _PIDM_;
 };
 
 #endif

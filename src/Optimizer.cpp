@@ -39,13 +39,20 @@ void Optimizer::initializeGraph(uint64_t current_time){
     imuBias::ConstantBias prior_bias; //Assume zeros bias
     // Values initial_values_;
 
-    initial_values_.insert(X(0), prior_pose);
-    initial_values_.insert(V(0), prior_velocity);
-    initial_values_.insert(B(0), prior_bias);
 
-    graph_.add(PriorFactor<Pose3>(X(state_index_), prior_pose, pose_noise_model_));
-    graph_.add(PriorFactor<Vector3>(V(state_index_), prior_velocity, velocity_noise_model_));
-    graph_.add(PriorFactor<imuBias::ConstantBias>(B(state_index_), prior_bias, bias_noise_model_));
+    NonlinearFactorGraph prior_graph;
+    Values prior_variables;
+    // std::vector<int> priorFactorTypes(3,FactorType::Prior);
+
+    prior_variables.insert(X(0), prior_pose);
+    prior_variables.insert(V(0), prior_velocity);
+    prior_variables.insert(B(0), prior_bias);
+
+    prior_graph.add(PriorFactor<Pose3>(X(state_index_), prior_pose, pose_noise_model_));
+    prior_graph.add(PriorFactor<Vector3>(V(state_index_), prior_velocity, velocity_noise_model_));
+    prior_graph.add(PriorFactor<imuBias::ConstantBias>(B(state_index_), prior_bias, bias_noise_model_));
+
+
 
     Matrix33 cov_a = Matrix33::Identity(3,3) * pow(accel_noise_sigma,2);
     Matrix33 cov_g = Matrix33::Identity(3,3) * pow(gyro_noise_sigma,2);
@@ -73,11 +80,14 @@ void Optimizer::initializeGraph(uint64_t current_time){
 
     t1_ =  std::chrono::high_resolution_clock::now(); 
     t2_ =  std::chrono::high_resolution_clock::now(); 
+
+    graph_.update(prior_graph, prior_variables);
+
 }
 
 void Optimizer::addImuFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> data_to_add){
     NonlinearFactorGraph imuFactors_;
-    std::vector<int> imuFactorTypes_;
+    // std::vector<int> imuFactorTypes_;
  
     for (std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>>::iterator it = data_to_add.begin() ; it != data_to_add.end(); ++it)
     {
@@ -89,14 +99,25 @@ void Optimizer::addImuFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double
 
 
     PreintegratedCombinedMeasurements *preint_imu = dynamic_cast<PreintegratedCombinedMeasurements*>(imu_preintegrated_);
-    
     CombinedImuFactor imu_factor(X(state_index_-1), V(state_index_-1),
-                 X(state_index_  ), V(state_index_  ),
+                 X(state_index_ ), V(state_index_  ),
                  B(state_index_-1), B(state_index_), 
                  *preint_imu);
+    
+    prop_state_ = imu_preintegrated_->predict(prev_state_, prev_bias_);
 
-    graph_.add(imu_factor);
-   
+    Values imuVariables;
+    imuVariables.insert(X(state_index_), prop_state_.pose());
+    imuVariables.insert(V(state_index_), prop_state_.v());
+    imuVariables.insert(B(state_index_), prev_bias_);
+
+    NonlinearFactorGraph imuFactors;
+    imuFactors.add(imu_factor);
+
+    std::vector<int> imuFactorTypes;
+    // imuFactorTypes.push_back(FactorType::Preint);
+
+    graph_.update(imuFactors, imuVariables);  
 }
 
 std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> Optimizer::getImuData(uint64_t start_time, uint64_t end_time){
@@ -117,6 +138,10 @@ std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> Optimizer::getImuData
     }
 
     return result;
+}
+
+void marginalizeGraph(){
+
 }
 
 void Optimizer::setParams(){   
@@ -198,11 +223,6 @@ void Optimizer::addProjectionFactor(const std::vector<FeatureHandler::BackendFea
                 const PinholeCamera<Cal3_S2> leftCamera_i(leftPose, monoCal_left);
                 const PinholeCamera<Cal3_S2> rightCamera_i(rightPose, monoCal_right);
 
-                // std::cout << "left cam is " << p_.intrinsics_vec_L[pair_id] << std::endl;
-                // std::cout << "right cam is " << p_.intrinsics_vec_R[pair_id] << std::endl;
-                // std::cout << "left point is " << Point2(left_p[0],left_p[1]) << std::endl; 
-                // std::cout << "right point is " << Point2(right_p[0],right_p[1]) << std::endl; 
-
                 monoCameras.push_back(leftCamera_i);
                 monoMeasured.push_back(Point2(left_p[0],left_p[1]));
                 monoCameras.push_back(rightCamera_i);
@@ -218,11 +238,6 @@ void Optimizer::addProjectionFactor(const std::vector<FeatureHandler::BackendFea
                 total_counter++;
                 if (!result_)
                 {
-                    // std::cout << "result is " << result_ << std::endl;
-                    // std::cout << "left cam is " << P_IMU_CAML_[pair_id] << std::endl;
-                    // // leftCamera_i.print();
-                    // std::cout << "right cam is " << P_IMU_CAMR_[pair_id] << std::endl;
-                    // rightCamera_i.print();
                     continue;
                 }
                 else
@@ -240,7 +255,7 @@ void Optimizer::addProjectionFactor(const std::vector<FeatureHandler::BackendFea
                     curr_landmark->observations.insert(std::make_pair(state_index_,measurement));
                     if (curr_landmark->observations.size()>1)
                     {
-                        initial_values_.insert(L(id), pos_prior);
+                        visionVariables_.insert(L(id), pos_prior);
                         bool added_prior = false;
                         for(auto const &obs : curr_landmark->observations)
                         {
@@ -248,13 +263,13 @@ void Optimizer::addProjectionFactor(const std::vector<FeatureHandler::BackendFea
                                  continue;
                             Eigen::Vector4d measurement = obs.second;
                             StereoLandmarkFactor stereoFactorUnrect = StereoLandmarkFactor(X(obs.first),L(id),cam_noisemodel, P_IMU_CAML_[pair_id], P_IMU_CAMR_[pair_id], p_.intrinsics_vec_L[pair_id], p_.intrinsics_vec_R[pair_id], Point2(measurement[0], measurement[1]), Point2(measurement[2], measurement[3]));
-                            graph_.add(stereoFactorUnrect);
-                            visionFactorTypes_.push_back(FactorType::Projection);
+                            visionFactors_.add(stereoFactorUnrect);
+                            // visionFactorTypes_.push_back(FactorType::Projection);
                             if (!added_prior){
                                 noiseModel::Diagonal::shared_ptr landmarkPriorModel = noiseModel::Diagonal::Sigmas(Vector3(10,10,10));
                                 gtsam::PriorFactor<Point3> landmark_prior = gtsam::PriorFactor<Point3>(L(id),pos_prior,landmarkPriorModel);
-                                graph_.add(landmark_prior);
-                                landmarkPriorFactorTypes_.push_back(FactorType::Prior);
+                                landmarkPriorFactors_.add(landmark_prior);
+                                // landmarkPriorFactorTypes_.push_back(FactorType::Prior);
                                 added_prior = true;
                             }
                         }
@@ -265,13 +280,16 @@ void Optimizer::addProjectionFactor(const std::vector<FeatureHandler::BackendFea
                 else if (curr_landmark->factorAdded)
                 { 
                     gtsam::StereoLandmarkFactor stereoFactorUnrect = gtsam::StereoLandmarkFactor(X(state_index_),L(id),cam_noisemodel,P_IMU_CAML_[pair_id], P_IMU_CAMR_[pair_id], p_.intrinsics_vec_L[pair_id], p_.intrinsics_vec_R[pair_id], Point2(left_p[0], left_p[1]), Point2(right_p[0], right_p[1]));
-                    graph_.add(stereoFactorUnrect);
-                    visionFactorTypes_.push_back(FactorType::Projection);
+                    visionFactors_.add(stereoFactorUnrect);
+                    // visionFactorTypes_.push_back(FactorType::Projection);
                     Eigen::Vector4d measurement(left_p[0],left_p[1],right_p[0],right_p[1]);
                     curr_landmark->observations.insert(std::make_pair(state_index_,measurement));
                 }
             }
         }
+    graph_.update(visionFactors_, visionVariables_);
+    graph_.update(landmarkPriorFactors_, landmarkPriorVariables_);
+
     // std::cout << "Accepted " << accepted_counter << " of " << total_counter << " features" << std::endl;
 }
 
@@ -316,24 +334,18 @@ void Optimizer::optimizationLoop(){
         */
         addProjectionFactor(image_buffer_[0].second);
 
-        prop_state_ = imu_preintegrated_->predict(prev_state_, prev_bias_);
-        initial_values_.insert(X(state_index_), prop_state_.pose());
-        initial_values_.insert(V(state_index_), prop_state_.v());
-        initial_values_.insert(B(state_index_), prev_bias_);
-
-        //Runs GN Optimization on factor graph    
-        GaussNewtonOptimizer optimizer(graph_, initial_values_);
-        result = optimizer.optimize();
-
+        //Runs LM Optimization on factor graph    
+        graph_.optimize();
+        result = graph_.getLinearizationPoint();
+        
         prev_state_ = NavState(result.at<Pose3>(X(state_index_)), result.at<Vector3>(V(state_index_)));
-
         prev_bias_ = result.at<imuBias::ConstantBias>(B(state_index_));
-
         imu_preintegrated_ -> resetIntegrationAndSetBias(prev_bias_);
-
         previous_frame_time = current_frame_time;
-
         image_buffer_.pop_front();
+        std::cout << "current state estimate is: " << std::endl;
+        prev_state_.pose().print(); 
+        std::cout << std::endl << std::endl;
     }
 }
 

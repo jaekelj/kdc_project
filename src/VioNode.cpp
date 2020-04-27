@@ -3,6 +3,7 @@
 
 void VioNode::imuCallback(const sensor_msgs::Imu::ConstPtr& msg){
     // std::cout << "In IMU Callback" << std::endl;
+    gotIMU_ = true;
     Eigen::Vector3d linear_acc, angular_vel;
     Eigen::Quaterniond ahrs; 
     tf::vectorMsgToEigen (msg->linear_acceleration, linear_acc);
@@ -26,6 +27,7 @@ void VioNode::imuCallback(const sensor_msgs::Imu::ConstPtr& msg){
 
 void VioNode::imageCallback(const sensor_msgs::ImageConstPtr &cam0, const sensor_msgs::ImageConstPtr &cam1)
 {
+    if (!gotIMU_) return;
     // std::cout << " "
     cv_bridge::CvImageConstPtr cam0_ptr = cv_bridge::toCvCopy(cam0, sensor_msgs::image_encodings::MONO8);
     cv_bridge::CvImageConstPtr cam1_ptr = cv_bridge::toCvCopy(cam1, sensor_msgs::image_encodings::MONO8);
@@ -65,7 +67,6 @@ int main(int argc, char **argv){
 
     message_filters::Subscriber<sensor_msgs::Image> image_subL(nh, p.left_image_topics[0],10);
     message_filters::Subscriber<sensor_msgs::Image> image_subR(nh, p.right_image_topics[0],10);
-    std::cout << "subscribing to " << p.left_image_topics[0] << " and " << p.right_image_topics[0] << std::endl;
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol_multi;
     message_filters::Synchronizer<sync_pol_multi> sync_multi(sync_pol_multi(1000), image_subL, image_subR);
     sync_multi.registerCallback(boost::bind(&VioNode::imageCallback, &vio, _1, _2));
