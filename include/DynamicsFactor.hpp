@@ -1,8 +1,20 @@
 #ifndef DYNAMICS_FACTOR_HPP
 #define DYNAMICS_FACTOR_HPP
 
+#include <gtsam/navigation/ManifoldPreintegration.h>
+#include <gtsam/navigation/TangentPreintegration.h>
 #include <gtsam/nonlinear/NonlinearFactor.h>
 #include <gtsam/base/Matrix.h>
+#include <vector>
+
+// BAD PRACTICE, I know. 
+using namespace gtsam;
+
+#ifdef GTSAM_TANGENT_PREINTEGRATION
+typedef TangentPreintegration PreintegrationType;
+#else
+typedef ManifoldPreintegration PreintegrationType;
+#endif
 
 class PreintegratedCombDynamicsMeasurements : public PreintegrationType {
 
@@ -34,25 +46,25 @@ class PreintegratedCombDynamicsMeasurements : public PreintegrationType {
       Eigen::Matrix<double, 3, 1> SPi_DT;
       Eigen::Matrix<double, 3, 3> SPi_DD;
 
-      DynamicsParams() : g_vec {Vector3{0, 0, 9.81}},
-                          D {Z_3x3},
-                          dR {I_3x3},
-                          dtij {0.0f},
-                          dtij_1 {0.0f},
-                          dT_nav_1 {Z_3x1},
-                          dD_nav_1 {Z_3x3},
-                          Pi_g {Z_3x1},
-                          Pi_T {Z_3x1},
-                          Pi_D {Z_3x3},
-                          Pi_Dg {Z_3x3},
-                          Pi_DT {Z_3x1},
-                          Pi_DD {Z_3x3},
-                          SPi_g {Z_3x1},
-                          SPi_T {Z_3x1},
-                          SPi_D {Z_3x3},
-                          SPi_Dg {Z_3x3},
-                          SPi_DT {Z_3x1},
-                          SPi_DD {Z_3x3} {}
+      DynamicsParams() : g_vec(Vector3(0.0, 0.0, 9.81)), // g vec in NED frame
+                          D(),
+                          dR(),
+                          dtij(0.0f),
+                          dtij_1(0.0f),
+                          dT_nav_1(),
+                          dD_nav_1(),
+                          Pi_g(),
+                          Pi_T(),
+                          Pi_D(),
+                          Pi_Dg(),
+                          Pi_DT(),
+                          Pi_DD(),
+                          SPi_g(),
+                          SPi_T(),
+                          SPi_D(),
+                          SPi_Dg(),
+                          SPi_DT(),
+                          SPi_DD() {}
     };
 
     DynamicsParams dyn_params;
@@ -79,11 +91,13 @@ class PreintegratedCombDynamicsMeasurements : public PreintegrationType {
 
 }; // class PreintegratedCombDynamicsMeasurements
 
-class DynamicsFactor : public NoiseModelFactor4<Pose3, Vector3, Pose3, Vector3>{
+class DynamicsFactor : public NoiseModelFactor4<Pose3, Vector3, 
+                                                Pose3, Vector3>{
     
   private:
     typedef DynamicsFactor This;
-    typedef NoiseModelFactor4<Pose3, Vector3, Pose3, Vector3> Base;
+    typedef NoiseModelFactor4<Pose3, Vector3, 
+                              Pose3, Vector3> Base;
 
     PreintegratedCombDynamicsMeasurements _PIDM_;
 

@@ -46,7 +46,8 @@ set(TARGET_SRC
         src/Parameters.cpp
         src/FeatureHandler.cpp
         src/utils.cpp
-      	src/Optimizer.cpp
+        src/Optimizer.cpp
+        src/DynamicsFactor.cpp
 )
 
 include_directories(${OpenCV_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} ${GTSAM_INCLUDE_DIR} ${catkin_INCLUDE_DIRS} include)
