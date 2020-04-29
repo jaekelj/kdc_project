@@ -6,6 +6,8 @@
 #include <gtsam/nonlinear/NonlinearFactor.h>
 #include <gtsam/base/Matrix.h>
 #include <vector>
+#include <cmath>
+#include <math.h>
 
 // BAD PRACTICE, I know. 
 using namespace gtsam;
@@ -47,24 +49,24 @@ class PreintegratedCombDynamicsMeasurements : public PreintegrationType {
       Eigen::Matrix<double, 3, 3> SPi_DD;
 
       DynamicsParams() : g_vec(Vector3(0.0, 0.0, 9.81)), // g vec in NED frame
-                          D(),
-                          dR(),
+                          D(Eigen::Matrix3d::Zero()),
+                          dR(Eigen::Matrix3d::Identity()),
                           dtij(0.0f),
                           dtij_1(0.0f),
-                          dT_nav_1(),
-                          dD_nav_1(),
-                          Pi_g(),
-                          Pi_T(),
-                          Pi_D(),
-                          Pi_Dg(),
-                          Pi_DT(),
-                          Pi_DD(),
-                          SPi_g(),
-                          SPi_T(),
-                          SPi_D(),
-                          SPi_Dg(),
-                          SPi_DT(),
-                          SPi_DD() {}
+                          dT_nav_1(Eigen::Vector3d::Zero()),
+                          dD_nav_1(Eigen::Matrix3d::Zero()),
+                          Pi_g(Eigen::Vector3d::Zero()),
+                          Pi_T(Eigen::Vector3d::Zero()),
+                          Pi_D(Eigen::Matrix3d::Zero()),
+                          Pi_Dg(Eigen::Matrix3d::Zero()),
+                          Pi_DT(Eigen::Vector3d::Zero()),
+                          Pi_DD(Eigen::Matrix3d::Zero()),
+                          SPi_g(Eigen::Vector3d::Zero()),
+                          SPi_T(Eigen::Vector3d::Zero()),
+                          SPi_D(Eigen::Matrix3d::Zero()),
+                          SPi_Dg(Eigen::Matrix3d::Zero()),
+                          SPi_DT(Eigen::Vector3d::Zero()),
+                          SPi_DD(Eigen::Matrix3d::Zero()) {}
     };
 
     DynamicsParams dyn_params;
@@ -85,9 +87,16 @@ class PreintegratedCombDynamicsMeasurements : public PreintegrationType {
     void setupDragMatrix(const Eigen::Matrix<double, 3, 3>& drag_mat);
     void integrateMeasurement();
     void resetParams();    
-    void predictRotation();
-    void predictPosition();
-    void predictVelocity();
+    
+    Eigen::Matrix3d predictRotation(Eigen::Matrix3d& R_i);
+    
+    Eigen::Vector3d predictPosition(Eigen::Matrix3d& R_i, Eigen::Vector3d& v_i,
+                                    Eigen::Vector3d& v_j, Eigen::Vector3d& p_i);
+
+    Eigen::Vector3d predictVelocity(Eigen::Vector3d& v_i, Eigen::Matrix3d& R_i);
+    
+    Eigen::Matrix3d getSkew(const Eigen::Vector3d& x);
+    Eigen::Matrix3d getExpMap(const Eigen::Vector3d& x);
 
 }; // class PreintegratedCombDynamicsMeasurements
 
