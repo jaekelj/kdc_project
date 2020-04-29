@@ -9,7 +9,7 @@
 #include <cmath>
 #include <math.h>
 
-// BAD PRACTICE, I know. 
+// <BAD PRACTICE>, I know. 
 using namespace gtsam;
 
 #ifdef GTSAM_TANGENT_PREINTEGRATION
@@ -48,7 +48,7 @@ class PreintegratedCombDynamicsMeasurements : public PreintegrationType {
       Eigen::Matrix<double, 3, 1> SPi_DT;
       Eigen::Matrix<double, 3, 3> SPi_DD;
 
-      DynamicsParams() : g_vec(Vector3(0.0, 0.0, 9.81)), // g vec in NED frame
+      DynamicsParams() : g_vec(Vector3(0.0, 0.0, 9.81)), // <HARD-CODING> g vec in NED frame
                           D(Eigen::Matrix3d::Zero()),
                           dR(Eigen::Matrix3d::Identity()),
                           dtij(0.0f),
@@ -85,15 +85,17 @@ class PreintegratedCombDynamicsMeasurements : public PreintegrationType {
      * 
      */
     void setupDragMatrix(const Eigen::Matrix<double, 3, 3>& drag_mat);
-    void integrateMeasurement();
+    void integrateMeasurement(const Eigen::Vector3d& T_b,
+                              const Eigen::Matrix<double,7,1>& imu_measurement,
+                              const double& dt);
     void resetParams();    
     
-    Eigen::Matrix3d predictRotation(Eigen::Matrix3d& R_i);
+    Eigen::Matrix3d predictRotation(const Eigen::Matrix3d& R_i);
     
-    Eigen::Vector3d predictPosition(Eigen::Matrix3d& R_i, Eigen::Vector3d& v_i,
-                                    Eigen::Vector3d& v_j, Eigen::Vector3d& p_i);
+    Eigen::Vector3d predictPosition(const Eigen::Matrix3d& R_i, const Eigen::Vector3d& v_i,
+                                    const Eigen::Vector3d& v_j, const Eigen::Vector3d& p_i);
 
-    Eigen::Vector3d predictVelocity(Eigen::Vector3d& v_i, Eigen::Matrix3d& R_i);
+    Eigen::Vector3d predictVelocity(const Eigen::Vector3d& v_i, const Eigen::Matrix3d& R_i);
     
     Eigen::Matrix3d getSkew(const Eigen::Vector3d& x);
     Eigen::Matrix3d getExpMap(const Eigen::Vector3d& x);
