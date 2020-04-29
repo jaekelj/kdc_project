@@ -154,7 +154,7 @@ Eigen::Matrix3d PreintegratedCombDynamicsMeasurements::getExpMap(
     double norm_x = x.norm();
     Eigen::Matrix3d skew_x = getSkew(x);
     
-    // TO-DO --> Unsure about the computation of this exponential
+    // ! RE-CHECK ! --> Unsure about the computation of the exponential map
     
     // option-1
     // exp_x = x.exp(); // this requires a square matrix

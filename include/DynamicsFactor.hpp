@@ -5,11 +5,10 @@
 #include <gtsam/navigation/TangentPreintegration.h>
 #include <gtsam/nonlinear/NonlinearFactor.h>
 #include <gtsam/base/Matrix.h>
-#include <vector>
 #include <cmath>
 #include <math.h>
 
-// <BAD PRACTICE>, I know. 
+// ! BAD PRACTICE !, I know. 
 using namespace gtsam;
 
 #ifdef GTSAM_TANGENT_PREINTEGRATION
@@ -48,7 +47,7 @@ class PreintegratedCombDynamicsMeasurements : public PreintegrationType {
       Eigen::Matrix<double, 3, 1> SPi_DT;
       Eigen::Matrix<double, 3, 3> SPi_DD;
 
-      DynamicsParams() : g_vec(Vector3(0.0, 0.0, 9.81)), // <HARD-CODING> g vec in NED frame
+      DynamicsParams() : g_vec(Vector3(0.0, 0.0, 9.81)), // ! HARD-CODING ! g vec in NED frame
                           D(Eigen::Matrix3d::Zero()),
                           dR(Eigen::Matrix3d::Identity()),
                           dtij(0.0f),
