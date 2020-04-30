@@ -103,12 +103,13 @@ class Optimizer{
         std::vector<Pose3> P_IMU_CAMR_;
 
         boost::circular_buffer<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> imu_buffer_;
+        boost::circular_buffer<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> dynamics_buffer_;
         boost::circular_buffer<std::pair<uint64_t, std::vector<FeatureHandler::BackendFeature>>> image_buffer_;
 
         std::thread optimization_thread_;
 
-        std::chrono::high_resolution_clock::time_point t1_; 
-        std::chrono::high_resolution_clock::time_point t2_; 
+        std::chrono::high_resolution_clock::time_point t1_;
+        std::chrono::high_resolution_clock::time_point t2_;
 
         std::map<uint64_t, Landmark*, std::less<uint64_t>, Eigen::aligned_allocator<Landmark> > map_;
 
@@ -136,6 +137,8 @@ class Optimizer{
 
         void addImuFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> data_to_add);
 
+        void addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> data_to_add);
+
         void addProjectionFactor(const std::vector<FeatureHandler::BackendFeature>& features);
 
         void optimizationLoop();
@@ -148,6 +151,10 @@ class Optimizer{
             imu_buffer_.push_back(imu_msg);
         };
 
+        void addDynamicsMeasurement(std::pair<uint64_t,Eigen::Matrix<double,5,1>> dynamics_msg){
+            dynamics_buffer_.push_back(dynamics_msg);
+        };
+
         void addImageMeasurement(std::pair<uint64_t, std::vector<FeatureHandler::BackendFeature>> image_msg){
             image_buffer_.push_back(image_msg);
         };
@@ -157,6 +164,8 @@ class Optimizer{
         }
 
         std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> getImuData(uint64_t start_time, uint64_t end_time);
+
+        std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> getDynamicsData(uint64_t start_time, uint64_t end_time);
 
 };
 
