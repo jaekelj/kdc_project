@@ -141,7 +141,7 @@ std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> Optimizer::getImuData
 }
 
 void marginalizeGraph(){
-
+    
 }
 
 void Optimizer::setParams(){   
@@ -328,6 +328,7 @@ void Optimizer::optimizationLoop(){
 
         if (imu_data.size() != 0){
             addImuFactor(imu_data);
+            // addDynamicsFactor(imu_data,...);
         }
 
         /*  TODO: Insert projection factors into graph

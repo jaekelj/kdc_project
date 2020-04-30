@@ -258,8 +258,6 @@ void FeatureHandler::stereoMatch(
 
 void FeatureHandler::temporalMatch(const cv::Mat &camL_img, const cv::Mat &camR_img, uint64_t current_time, int pair_id)
 {
-    bool compensate_vel = false;
-
     std::vector<uchar> status;
     std::vector<cv::Point2f> matched_pointsL;
     std::vector<float> err;
@@ -395,7 +393,6 @@ void FeatureHandler::addFeatures(const cv::Mat &camL_img, const cv::Mat &camR_im
         return;
     }
     // std::cout << "Found " << corners_L.size() << " potential new features" << std::endl;
-    corners_R = corners_L;
     stereoMatch(camL_img, camR_img, corners_L, corners_R, status, pair_id);
     unsigned int counter = 0;
     for (int i = 0; i < status.size(); i++)

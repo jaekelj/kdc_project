@@ -44,7 +44,7 @@ void VioNode::imageCallback(const sensor_msgs::ImageConstPtr &cam0, const sensor
         feature_handler_.temporalMatch(cam0_ptr->image, cam1_ptr->image, cam0->header.stamp.toNSec(), 0);
         feature_handler_.removeRedundantFeatures();
         feature_handler_.addFeatures(cam0_ptr->image, cam1_ptr->image, 0);
-        optimizer_.addImageMeasurement(std::make_pair(cam0->header.stamp.toNSec(),feature_handler_.sendToRANSAC(cam0, cam1)));
+        optimizer_.(std::make_pair(cam0->header.stamp.toNSec(),feature_handler_.sendToRANSAC(cam0, cam1)));
         // feature_handler_.sendToRANSAC(cam0, cam1);
     }
     feature_handler_.setPrevImage(cam0_ptr->image);

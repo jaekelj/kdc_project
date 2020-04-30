@@ -114,8 +114,8 @@ class Optimizer{
         std::map<uint64_t, Landmark*, std::less<uint64_t>, Eigen::aligned_allocator<Landmark> > map_;
 
         std::map<int, std::map<int,Landmark*> > stateMap_;
-        // std::map<int,Landmark*> idLandmarks_;
 
+        std::vector<Key> optimization_window_;
     public:
         Optimizer(const Parameters& p) : p_(p){
             LevenbergMarquardtParams params;
