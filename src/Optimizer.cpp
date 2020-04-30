@@ -106,21 +106,15 @@ void Optimizer::addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<d
     for (std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>>::iterator it = data_to_add.begin() ; it != data_to_add.end(); ++it)
     {
         Eigen::Matrix<double,5,1> dynamicsMeasurement = it->second;
-        dynamics_preintegrated_->integrateMeasurement(Vector3(imuMeasurement[1],imuMeasurement[2],imuMeasurement[3]),
-                                           Vector3(imuMeasurement[4],imuMeasurement[5],imuMeasurement[6]),
-                                           imuMeasurement[0]); // TODO update line for dynamics
+        // dynamics_preintegrated_->integrateMeasurement(Vector3(imuMeasurement[1],imuMeasurement[2],imuMeasurement[3]),
+                                        //    Vector3(imuMeasurement[4],imuMeasurement[5],imuMeasurement[6]),
+                                        //    imuMeasurement[0]); // TODO update line for dynamics
     }
 
 
-    PreintegratedCombinedMeasurements *preint_dynamics = dynamic_cast<PreintegratedCombinedMeasurements*>(dynamics_preintegrated_);
-
-    DynamicsFactor dynamics_factor(X(state_index_-1), V(state_index_-1),
-                 X(state_index_  ), V(state_index_  ),
-                 B(state_index_-1), B(state_index_),
-                 *preint_dynamics); // TODO check
-
+    PreintegratedCombDynamicsMeasurements *preint_dynamics = dynamic_cast<PreintegratedCombDynamicsMeasurements*>(dynamics_preintegrated_);
+    DynamicsFactor dynamics_factor(X(state_index_-1), V(state_index_-1), X(state_index_), V(state_index_), *preint_dynamics); // TODO check
     graph_.add(dynamics_factor);
-
 }
 
 std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> Optimizer::getImuData(uint64_t start_time, uint64_t end_time){

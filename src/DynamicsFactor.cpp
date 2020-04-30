@@ -1,5 +1,11 @@
 #include <DynamicsFactor.hpp>
 
+
+DynamicsFactor::DynamicsFactor(Key pose_i, Key pose_j, Key vel_i, Key vel_j, const PreintegratedCombDynamicsMeasurements& pidm) : 
+  _PIDM_(pidm), Base(noiseModel::Gaussian::Covariance(pidm.preintMeasCov_), pose_i, vel_i, pose_j, vel_j) {
+    
+  }
+
 //------------------------------------------------------------------------------
 // Inner class PreintegratedCombinedMeasurements methods
 //------------------------------------------------------------------------------

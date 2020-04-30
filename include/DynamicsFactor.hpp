@@ -74,6 +74,8 @@ class PreintegratedCombDynamicsMeasurements : public PreintegrationType {
     /* Ideally there should be a covariance matrix of preintegrated measurements here
      *
      */
+      Eigen::Matrix<double, 9, 9> preintMeasCov_ = 0.001*Eigen::MatrixXd::Identity(9,9);
+
 
     friend class DynamicsFactor;
 
@@ -101,23 +103,23 @@ class PreintegratedCombDynamicsMeasurements : public PreintegrationType {
 
 }; // class PreintegratedCombDynamicsMeasurements
 
-class DynamicsFactor : public NoiseModelFactor4<Pose3, Vector3, 
-                                                Pose3, Vector3>{
+class DynamicsFactor : public NoiseModelFactor4<Pose3, Vector3, Pose3, Vector3>{
     
   private:
     typedef DynamicsFactor This;
-    typedef NoiseModelFactor4<Pose3, Vector3, 
-                              Pose3, Vector3> Base;
+    typedef NoiseModelFactor4<Pose3, Vector3, Pose3, Vector3> Base;
 
     PreintegratedCombDynamicsMeasurements _PIDM_;
 
   public: 
-    
-    void evaluateError(const Pose3& pose_i, const Pose3& pose_j, 
-                      const Vector3& vel_i, const Vector3& vec_i);
 
-    virtual ~DynamicsFactor() {}
+    DynamicsFactor(Key pose_i, Key pose_j, Key vel_i, Key vel_j, const PreintegratedCombDynamicsMeasurements& pidm);
+    
+    void evaluateError(const Pose3& pose_i, const Pose3& pose_j, const Vector3& vel_i, const Vector3& vec_i);
+
+    ~DynamicsFactor() {}
 
 
 }; // class DynamicsFactor
+
 #endif

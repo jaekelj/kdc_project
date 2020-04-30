@@ -80,6 +80,7 @@ class Optimizer{
         NavState prev_state_, prop_state_;
         imuBias::ConstantBias prev_bias_;
         PreintegrationType *imu_preintegrated_;
+        PreintegrationType *dynamics_preintegrated_;
 
         Parameters p_;
 
@@ -87,7 +88,6 @@ class Optimizer{
         float gyro_noise_sigma = 1.6968e-3;
         float accel_bias_rw_sigma = 3.0e-2;
         float gyro_bias_rw_sigma = 1.9393e-3;
-
 
         int state_index_ = 0;
 
