@@ -175,8 +175,11 @@ Eigen::Matrix3d PreintegratedCombDynamicsMeasurements::getExpMap(
 //------------------------------------------------------------------------------
 // class DynamicsFactor methods
 //------------------------------------------------------------------------------
-void DynamicsFactor::evaluateError(const Pose3& pose_i, const Pose3& pose_j, 
-                      const Vector3& vel_i, const Vector3& vec_i) {
-
+Vector DynamicsFactor::evaluateError(const Pose3& pose_i, 
+                      const Vector3& vel_i, const Pose3& pose_j, const Vector3& vec_i,
+                      boost::optional<Matrix&> H1,
+                      boost::optional<Matrix&> H2,
+                      boost::optional<Matrix&> H3,
+                      boost::optional<Matrix&> H4) const {
 
 }

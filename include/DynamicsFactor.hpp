@@ -113,13 +113,18 @@ class DynamicsFactor : public NoiseModelFactor4<Pose3, Vector3, Pose3, Vector3>{
 
   public: 
 
-    DynamicsFactor(Key pose_i, Key pose_j, Key vel_i, Key vel_j, const PreintegratedCombDynamicsMeasurements& pidm);
+    DynamicsFactor(Key pose_i, Key vel_i, Key pose_j, Key vel_j, const PreintegratedCombDynamicsMeasurements& pidm);
     
-    void evaluateError(const Pose3& pose_i, const Pose3& pose_j, const Vector3& vel_i, const Vector3& vec_i);
+    Vector evaluateError(const Pose3& pose_i, const Vector3& vel_i, const Pose3& pose_j, const Vector3& vec_i,
+                         boost::optional<Matrix&> H1 = boost::none,
+                        boost::optional<Matrix&> H2 = boost::none,
+                        boost::optional<Matrix&> H3 = boost::none,
+                        boost::optional<Matrix&> H4 = boost::none) const override;
 
-    ~DynamicsFactor() {}
-
-
+    const PreintegratedCombDynamicsMeasurements& preintegratedMeasurements() const {
+      return _PIDM_;
+    }
+    virtual ~DynamicsFactor() {}
 }; // class DynamicsFactor
 
 #endif
