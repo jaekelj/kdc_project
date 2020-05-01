@@ -137,7 +137,8 @@ class Optimizer{
 
         void addImuFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> data_to_add);
 
-        void addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> data_to_add);
+        void addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> dynamics_data_to_add,
+          std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> imu_data_to_add);
 
         void addProjectionFactor(const std::vector<FeatureHandler::BackendFeature>& features);
 

@@ -99,7 +99,7 @@ void Optimizer::addImuFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double
 
 }
 
-void Optimizer::addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> dynamics_data_to_add
+void Optimizer::addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> dynamics_data_to_add,
                                   std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> imu_data_to_add){
     NonlinearFactorGraph dynamicsFactors_;
     std::vector<int> dynamicsFactorTypes_;
@@ -112,6 +112,8 @@ void Optimizer::addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<d
         auto dynamicsTime = it->first;
         // TODO optimize loop to not start from scratch each time
         std::pair<uint64_t,Eigen::Matrix<double,7,1>> prev_imu = *imu_data_to_add.begin();
+        std::pair<uint64_t,Eigen::Matrix<double,7,1>> next_imu;
+
         for (auto it = imu_data_to_add.begin(); it != imu_data_to_add.end(); ++it) {
           if (it->first >= dynamicsTime){
             next_imu = *it;
@@ -122,10 +124,23 @@ void Optimizer::addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<d
         // TODO interpolate IMU
 
         // TODO calculate thrust
-        Eigen::Vector3d T_b;
-        double dt = 1; // TODO calculate dt
+        double gamma = 0.01;
+        double ct = 2.081e-08; // from in flight calibration
+        double m = 0.915; // TODO remove hardcode
 
-        dynamics_preintegrated_->integrateMeasurement(T_b, prev_imu->second, dt);
+        double T = 0;
+        for (int i = 1; i < 5; ++i) {
+          T += std::pow(dynamicsMeasurement[i],2)*gamma;
+        }
+
+        T = T*ct/m;
+
+        Eigen::Vector3d T_b(0, 0, T);
+
+        // dt
+        double dt = dynamicsMeasurement[1]; // previously calculated dt
+
+        // dynamics_preintegrated_->integrateMeasurement(T_b, prev_imu.second, dt);
     }
 
 
