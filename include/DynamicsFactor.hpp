@@ -4,6 +4,7 @@
 #include <gtsam/navigation/ManifoldPreintegration.h>
 #include <gtsam/navigation/TangentPreintegration.h>
 #include <gtsam/nonlinear/NonlinearFactor.h>
+#include <gtsam/base/numericalDerivative.h>
 #include <gtsam/base/Matrix.h>
 #include <cmath>
 #include <math.h>
@@ -91,12 +92,12 @@ class PreintegratedCombDynamicsMeasurements : public PreintegrationType {
                               const double& dt);
     void resetParams();    
     
-    Eigen::Matrix3d predictRotation(const Eigen::Matrix3d& R_i);
+    Eigen::Matrix3d predictRotation(const Eigen::Matrix3d& R_i) const;
     
     Eigen::Vector3d predictPosition(const Eigen::Matrix3d& R_i, const Eigen::Vector3d& v_i,
-                                    const Eigen::Vector3d& v_j, const Eigen::Vector3d& p_i);
+                                    const Eigen::Vector3d& v_j, const Eigen::Vector3d& p_i) const;
 
-    Eigen::Vector3d predictVelocity(const Eigen::Vector3d& v_i, const Eigen::Matrix3d& R_i);
+    Eigen::Vector3d predictVelocity(const Eigen::Vector3d& v_i, const Eigen::Matrix3d& R_i) const;
     
     Eigen::Matrix3d getSkew(const Eigen::Vector3d& x);
     Eigen::Matrix3d getExpMap(const Eigen::Vector3d& x);

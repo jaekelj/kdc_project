@@ -83,14 +83,13 @@ void PreintegratedCombDynamicsMeasurements::integrateMeasurement(const Eigen::Ve
   this->dyn_params.dtij_1 = this->dyn_params.dtij;
   this->dyn_params.dT_nav_1 = dT_nav;
   this->dyn_params.dD_nav_1 = dD_nav;
-
 }
 
 //------------------------------------------------------------------------------
 // Predicts rotation given rotation R_i at state i
 // (given all preintegrated measurements so far)
 Eigen::Matrix3d PreintegratedCombDynamicsMeasurements::predictRotation( \
-                                                        const Eigen::Matrix3d& R_i) {
+                                                        const Eigen::Matrix3d& R_i) const{
   Eigen::Matrix3d R_j = R_i * this->dyn_params.dR;
   return R_j;
 }
@@ -100,7 +99,7 @@ Eigen::Matrix3d PreintegratedCombDynamicsMeasurements::predictRotation( \
 // (given all preintegrated measurements so far)
 Eigen::Vector3d PreintegratedCombDynamicsMeasurements::predictVelocity( \
                                                         const Eigen::Vector3d& v_i,
-                                                        const Eigen::Matrix3d& R_i) {
+                                                        const Eigen::Matrix3d& R_i) const{
 
   Eigen::Vector3d v_j = Eigen::Vector3d::Zero();
   
@@ -130,19 +129,32 @@ Eigen::Vector3d PreintegratedCombDynamicsMeasurements::predictVelocity( \
 // Given --> R_i, v_i, v_j, p_i
 Eigen::Vector3d PreintegratedCombDynamicsMeasurements::predictPosition(
                                     const Eigen::Matrix3d& R_i, const Eigen::Vector3d& v_i,
-                                    const Eigen::Vector3d& v_j, const Eigen::Vector3d& p_i) {
+                                    const Eigen::Vector3d& v_j, const Eigen::Vector3d& p_i) const{
   
   Eigen::Vector3d p_j = Eigen::Vector3d::Zero();
-  p_j = p_i
-      + this->dyn_params.dtij * v_i
-      + this->dyn_params.dt_1 * (v_j - v_i)/2
-      + this->dyn_params.SPi_g
-      + R_i * this->dyn_params.SPi_T
-      - R_i * this->dyn_params.SPi_D * R_i.transpose() * v_i
-      - R_i * this->dyn_params.SPi_Dg * R_i.transpose() * this->dyn_params.g_vec
-      - R_i * this->dyn_params.SPi_DT
-      + R_i * this->dyn_params.SPi_DD * R_i.transpose() * v_i;
   
+  // assuming v_i, v_j are in the world frame
+  // p_j = p_i
+  //     + this->dyn_params.dtij * v_i
+  //     + this->dyn_params.dt_1 * (v_j - v_i)/2 // ideally this should be [ R_i * this->dyn_params.dt_1 * (v_j - v_i)/2 ]
+  //     + this->dyn_params.SPi_g
+  //     + R_i * this->dyn_params.SPi_T
+  //     - R_i * this->dyn_params.SPi_D * R_i.transpose() * v_i
+  //     - R_i * this->dyn_params.SPi_Dg * R_i.transpose() * this->dyn_params.g_vec
+  //     - R_i * this->dyn_params.SPi_DT
+  //     + R_i * this->dyn_params.SPi_DD * R_i.transpose() * v_i;
+  
+  // assuming v_i, v_j are in the body frame (eq 2.17)
+  p_j = R_i.transpose() * p_i
+    + R_i.transpose() * this->dyn_params.dtij * v_i
+    + this->dyn_params.dt_1 * (v_j - v_i)/2 
+    + R_i.transpose() * this->dyn_params.SPi_g
+    + this->dyn_params.SPi_T
+    - this->dyn_params.SPi_D * R_i.transpose() * v_i
+    - this->dyn_params.SPi_Dg * R_i.transpose() * this->dyn_params.g_vec
+    - this->dyn_params.SPi_DT
+    + this->dyn_params.SPi_DD * R_i.transpose() * v_i;
+
   return p_j;
 }
 
@@ -187,10 +199,33 @@ Eigen::Matrix3d PreintegratedCombDynamicsMeasurements::getExpMap(
 // class DynamicsFactor methods
 //------------------------------------------------------------------------------
 Vector DynamicsFactor::evaluateError(const Pose3& pose_i, 
-                      const Vector3& vel_i, const Pose3& pose_j, const Vector3& vec_i,
+                      const Vector3& vel_i, const Pose3& pose_j, const Vector3& vel_j,
                       boost::optional<Matrix&> H1,
                       boost::optional<Matrix&> H2,
                       boost::optional<Matrix&> H3,
                       boost::optional<Matrix&> H4) const {
 
+
+    auto err = [&] (const Pose3& pose_i, const Vector3& vel_i, const Pose3& pose_j, const Vector3& vel_j)
+    { 
+      Matrix3 Ri_T = pose_i.rotation().transpose().matrix();
+
+      Vector residual_p = Ri_T*pose_j.translation().matrix() - _PIDM_.predictPosition(pose_i.rotation().matrix(), vel_i, vel_j, pose_i.translation().matrix());
+      Vector residual_v = Ri_T*vel_j - _PIDM_.predictVelocity(vel_i, pose_i.rotation().matrix());
+
+      Vector result(residual_p.size() + residual_v.size());
+      result << residual_p, residual_v;
+
+      return result;
+    };
+
+
+    // Define Jacobians
+    if (H1) *H1 = numericalDerivative41<Vector, Pose3, Vector3, Pose3, Vector3>(err, pose_i, vel_i, pose_j, vel_j);
+    if (H2) *H2 = numericalDerivative42<Vector, Pose3, Vector3, Pose3, Vector3>(err, pose_i, vel_i, pose_j, vel_j);
+    if (H3) *H3 = numericalDerivative43<Vector, Pose3, Vector3, Pose3, Vector3>(err, pose_i, vel_i, pose_j, vel_j);
+    if (H4) *H4 = numericalDerivative44<Vector, Pose3, Vector3, Pose3, Vector3>(err, pose_i, vel_i, pose_j, vel_j);
+    
+    
+    return err(pose_i, vel_i, pose_j, vel_j);
 }
