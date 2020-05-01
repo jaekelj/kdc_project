@@ -103,13 +103,24 @@ Eigen::Vector3d PreintegratedCombDynamicsMeasurements::predictVelocity( \
                                                         const Eigen::Matrix3d& R_i) {
 
   Eigen::Vector3d v_j = Eigen::Vector3d::Zero();
-  v_j = v_i  
-        + this->dyn_params.Pi_g 
-        + R_i * this->dyn_params.Pi_T
-        - R_i * this->dyn_params.Pi_D * R_i.transpose() * v_i
-        - R_i * this->dyn_params.Pi_Dg * R_i.transpose() * this->dyn_params.g_vec
-        - R_i * this->dyn_params.Pi_DT
-        + R_i * this->dyn_params.Pi_DD * R_i.transpose() * v_i;
+  
+  // ********* USE the following implementation for world frame v_j *************
+  // v_j = v_i  
+  //       + this->dyn_params.Pi_g 
+  //       + R_i * this->dyn_params.Pi_T
+  //       - R_i * this->dyn_params.Pi_D * R_i.transpose() * v_i
+  //       - R_i * this->dyn_params.Pi_Dg * R_i.transpose() * this->dyn_params.g_vec
+  //       - R_i * this->dyn_params.Pi_DT
+  //       + R_i * this->dyn_params.Pi_DD * R_i.transpose() * v_i;
+
+  // ********* USE the following implementation for body frame v_j **************
+  v_j = R_i.transpose() * v_i
+      + R_i.transpose() * this->dyn_params.Pi_g
+      + this->dyn_params.Pi_T
+      - this->dyn_params.Pi_D * R_i.transpose() * v_i
+      - this->dyn_params.Pi_Dg * R_i.transpose() * this->dyn_params.g_vec
+      - this->dyn_params.Pi_DT
+      + this->dyn_params.Pi_DD * R_i.transpose() * v_i;
 
   return v_j;
 }
