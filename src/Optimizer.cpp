@@ -99,16 +99,33 @@ void Optimizer::addImuFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double
 
 }
 
-void Optimizer::addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> data_to_add){
+void Optimizer::addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> dynamics_data_to_add
+                                  std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> imu_data_to_add){
     NonlinearFactorGraph dynamicsFactors_;
     std::vector<int> dynamicsFactorTypes_;
 
-    for (std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>>::iterator it = data_to_add.begin() ; it != data_to_add.end(); ++it)
+    for (std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>>::iterator it = dynamics_data_to_add.begin() ; it != dynamics_data_to_add.end(); ++it)
     {
         Eigen::Matrix<double,5,1> dynamicsMeasurement = it->second;
-        // dynamics_preintegrated_->integrateMeasurement(Vector3(imuMeasurement[1],imuMeasurement[2],imuMeasurement[3]),
-                                        //    Vector3(imuMeasurement[4],imuMeasurement[5],imuMeasurement[6]),
-                                        //    imuMeasurement[0]); // TODO update line for dynamics
+
+        // get IMU measurement from right before dynamics measurement  TODO interpolate
+        auto dynamicsTime = it->first;
+        // TODO optimize loop to not start from scratch each time
+        std::pair<uint64_t,Eigen::Matrix<double,7,1>> prev_imu = *imu_data_to_add.begin();
+        for (auto it = imu_data_to_add.begin(); it != imu_data_to_add.end(); ++it) {
+          if (it->first >= dynamicsTime){
+            next_imu = *it;
+            break;
+          }
+        }
+
+        // TODO interpolate IMU
+
+        // TODO calculate thrust
+        Eigen::Vector3d T_b;
+        double dt = 1; // TODO calculate dt
+
+        dynamics_preintegrated_->integrateMeasurement(T_b, prev_imu->second, dt);
     }
 
 
@@ -348,6 +365,12 @@ void Optimizer::optimizationLoop(){
 
         if (imu_data.size() != 0){
             addImuFactor(imu_data);
+        }
+
+        std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> dynamics_data = getDynamicsData(previous_frame_time, current_frame_time);
+
+        if (imu_data.size() != 0){
+            addDynamicsFactor(dynamics_data, imu_data);
         }
 
         /*  TODO: Insert projection factors into graph
