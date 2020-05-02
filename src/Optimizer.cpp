@@ -270,9 +270,10 @@ void Optimizer::optimizationLoop(){
             addImuFactor(imu_data);
         }
 
-        std::vector<std::pair<uint64_t, Eigen::Matrix<double, 5, 1>>> dynamics_data = getDynamicsData(previous_frame_time,current_frame_time);
+        std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> dynamics_data = getDynamicsData(previous_frame_time, current_frame_time);
+
         if (dynamics_data.size() != 0){
-            addDynamicsFactor(dynamics_data);
+            addDynamicsFactor(dynamics_data, imu_data);
         }
 
         //Add DVO factor
