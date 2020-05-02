@@ -106,8 +106,13 @@ void VioNode::imageCallback(const sensor_msgs::ImageConstPtr &cam0, const sensor
 
 
 int main(int argc, char **argv){
+    std::cout << "start" << std::endl;
+
     ros::init(argc, argv, "vio");
     ros::NodeHandle nh("~");
+
+    ROS_INFO_STREAM("initializing");
+    std::cout << "test" << std::endl;
 
     std::string file_path;
     nh.getParam("config_file_path", file_path);
@@ -119,10 +124,13 @@ int main(int argc, char **argv){
     message_filters::Subscriber<sensor_msgs::Imu> imu_sub(nh, p.imu_topic, 1000);
     imu_sub.registerCallback(&VioNode::imuCallback, &vio);
 
+    message_filters::Subscriber<blackbird::MotorRPM> dynamics_sub(nh, p.motors_topic, 1000);
+    dynamics_sub.registerCallback(&VioNode::dynamicsCallback, &vio);
+
     message_filters::Subscriber<sensor_msgs::Image> image_subL(nh, p.left_image_topics[0],10);
     message_filters::Subscriber<sensor_msgs::Image> image_subR(nh, p.right_image_topics[0],10);
     std::cout << "subscribing to " << p.left_image_topics[0] << " and " << p.right_image_topics[0] << std::endl;
-    
+
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol_multi;
     message_filters::Synchronizer<sync_pol_multi> sync_multi(sync_pol_multi(1000), image_subL, image_subR);
     sync_multi.registerCallback(boost::bind(&VioNode::imageCallback, &vio, _1, _2));

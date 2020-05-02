@@ -1,7 +1,7 @@
 #ifndef PARAMETERS_HPP
 #define PARAMETERS_HPP
 
-// STL includes 
+// STL includes
 #include <vector>
 #include <string>
 
@@ -31,7 +31,7 @@ class Parameters{
         int num_pairs;
 
         // Size of image
-        int row, col; 
+        int row, col;
 
         // Camera intrinsics
         std::vector<cv::Mat> intrinsics_L;
@@ -67,9 +67,10 @@ class Parameters{
 
         // Topic names
         std::string imu_topic;
+        std::string motors_topic;
         std::vector<std::string> left_image_topics;
         std::vector<std::string> right_image_topics;
-        std::string visualize_topic; 
+        std::string visualize_topic;
 
         // Optimization params
         float window_size;
@@ -89,10 +90,10 @@ class Parameters{
         float sigma_g;
         float sigma_ba;
         float sigma_bg;
-        
+
         // Camera noise model param
         float sigma_pix;
-    
+
         // KLT params
         int patch_size;
         int pyramid_levels;

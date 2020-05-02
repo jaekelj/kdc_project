@@ -29,7 +29,7 @@ void Parameters::readConfig(std::string file_path){
         K.at<float>(1,1) = tmpL.at<float>(0,1);
         K.at<float>(0,2) = tmpL.at<float>(0,2);
         K.at<float>(1,2) = tmpL.at<float>(0,3);
-        intrinsics_L.push_back(K);  
+        intrinsics_L.push_back(K);
         Eigen::VectorXd Kl(5);
         Kl << tmpL.at<float>(0,0), tmpL.at<float>(0,1), 0, tmpL.at<float>(0,2), tmpL.at<float>(0,3);
         intrinsics_vec_L.push_back(Kl);
@@ -52,7 +52,7 @@ void Parameters::readConfig(std::string file_path){
 
         tmpL.convertTo(tmpL,CV_32F);
         tmpR.convertTo(tmpR,CV_32F);
-        
+
         T_camL_imu.push_back(tmpL);
         R_camL_imu.push_back(tmpL(cv::Rect(0,0,3,3)));
         t_camL_imu.push_back(tmpL(cv::Rect(3,0,1,3)));
@@ -108,7 +108,8 @@ void Parameters::readConfig(std::string file_path){
 
     // Topic names
     imu_topic = (std::string) config_file["imu_topic"];
-    visualize_topic = (std::string) config_file["visulize_pub_topic"]; 
+    motors_topic = (std::string) config_file["motors_topic"];
+    visualize_topic = (std::string) config_file["visulize_pub_topic"];
     for (auto item : config_file["image_topics"]){
         left_image_topics.push_back((std::string) item["left"]);
         right_image_topics.push_back((std::string) item["right"]);
@@ -117,13 +118,13 @@ void Parameters::readConfig(std::string file_path){
     // Optimization params
     window_size = config_file["lag_size"];
     preint_cov = config_file["preint_cov"];
-    preint_bias_cov = config_file["preint_bias_cov"]; 
+    preint_bias_cov = config_file["preint_bias_cov"];
     max_iter = config_file["max_iter"];
     abs_tol = config_file["abs_tol"];
     rel_tol = config_file["rel_tol"];
     imurate = static_cast<int> (config_file["propagateAtImuRate"])!=0;
     keyframe_spacing = config_file["keyframe_spacing"];
-    
+
     // Imu params
     sigma_a = config_file["sigma_a"];
     sigma_ba = config_file["sigma_ba"];
@@ -163,4 +164,4 @@ cv::Mat Parameters::buildSkewSym(const cv::Mat& vec){
     result.at<float>(2,1) = vec.at<float>(0,0);
 
     return result;
-}   
+}

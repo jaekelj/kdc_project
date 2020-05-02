@@ -1,0 +1,103 @@
+%YAML:1.0
+
+image_width: 752
+image_height: 480
+num_pairs: 1
+
+#================================ Camera Calibrations Settings ================================
+
+## Each matrix below takes a point from the  imu frame -> camera frame
+extrinsics:
+  - left: !!opencv-matrix
+      rows: 4
+      cols: 4
+      dt: d
+      data: [0.014865542981794,   0.999557249008346,  -0.025774436697440,   0.065222909535531,
+            -0.999880929698575,   0.014967213324719,   0.003756188357967,  -0.020706385492719,
+            0.004140296794224,   0.025715529947966,   0.999660727177902,  -0.008054602460030,
+            0,                   0,                   0,   1.000000000000000]
+
+
+    right: !!opencv-matrix
+      rows: 4
+      cols: 4
+      dt: d
+      data: [0.012555267089103,   0.999598781151433,  -0.025389800891747,  -0.044901980682509,
+              -0.999755099723116,   0.013011905181504,   0.017900583825251,  -0.020569771258915,
+              0.018223771455443,   0.025158836311552,   0.999517347077547,  -0.008638135126028,
+              0,                   0,                   0,   1.000000000000000]
+
+
+T_W_imu: !!opencv-matrix
+  rows: 4
+  cols: 4
+  dt: d
+  data: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]
+
+intrinsics:
+  - left: !!opencv-matrix
+      rows: 1
+      cols: 4
+      dt: d
+      data: [458.654, 457.296, 367.215, 248.375]
+    right: !!opencv-matrix
+      rows: 1
+      cols: 4
+      dt: d
+      data: [457.587, 456.134, 379.999, 255.238]
+
+distortion_coeffs:
+  - left: !!opencv-matrix
+      rows: 1
+      cols: 4
+      dt: d
+      data: [-0.28340811, 0.07395907, 0.00019359, 1.76187114e-05]
+    right: !!opencv-matrix
+      rows: 1
+      cols: 4
+      dt: d
+      data: [-0.28368365,  0.07451284, -0.00010473, -3.55590700e-05]
+
+#================================ IMU Params ================================
+sigma_a: 2.0e-2
+sigma_g: 1.6968e-3
+sigma_ba: 3.0e-2
+sigma_bg: 1.9393e-3
+preint_cov: 1.0e-3
+preint_bias_cov: 1.0e-5
+
+
+#================================ Camera Noise Params ================================
+sigma_pixel: 1
+
+#================================ Optimization Params ================================
+max_iter: 5
+abs_tol: 1.0e-3
+rel_tol: 1.0e-3
+propagateAtImuRate: 0
+keyframe_spacing: 0.08
+
+#================================ Debug Params ================================
+# To take features from a single pair, specify the pair number. If negative, backend will operate in multi-camera mode
+add_features: -1
+
+#================================ Frontend Params ================================
+ransac_threshold: 1
+num_features: 100
+min_dist: 30
+pyramid_levels: 3
+patch_size: 21
+grid_row: 4
+grid_col: 5
+grid_min_feature_num: 3
+grid_max_feature_num: 7
+
+#================================ ROS Topics ================================
+
+imu_topic: "/blackbird/imu"
+motors_topic: "/blackbird/rotor_rpm"
+image_topics:
+  - left: "/uav/camera/Camera_Left_Gray/image_rect"
+    right: "/uav/camera/Camera_Right_Gray/image_rect"
+
+visulize_pub_topic: "stereo_visualize_img"
