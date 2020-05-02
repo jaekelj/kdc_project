@@ -48,10 +48,7 @@
 #include <map>
 
 // Local includes
-// #include <FeatureHandler.hpp>
 #include <Parameters.hpp>
-// #include <StereoLandmarkFactors.hpp>
-// #include <Sparsifier.h>
 #include <DynamicsFactor.hpp>
 
 using namespace gtsam;
@@ -162,6 +159,7 @@ class Optimizer{
 
         std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> getDynamicsData(uint64_t start_time, uint64_t end_time);
 
+        boost::circular_buffer<nav_msgs::Odometry> odom_buffer_;
 };
 
 

@@ -39,6 +39,7 @@ class VioNode{
 
         VioNode(ros::NodeHandle& nh, const Parameters& p) : optimizer_(p){
             odom_pub = nh.advertise<nav_msgs::Odometry>("VIO_odom", 50);
+            
             multi_dvo.reset(new MultiDvo(2, 2));
             multi_dvo->setNumMaxIter(100);
             multi_dvo->setNormThresh(1e-6);

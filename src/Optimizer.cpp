@@ -5,8 +5,6 @@
 #include "Optimizer.hpp"
 
 void Optimizer::initializeGraph(uint64_t current_time){
-
-
     setParams();
     GaussNewtonParams parameters;
     parameters.setVerbosity("ERROR");
@@ -193,7 +191,8 @@ void Optimizer::addImageFactor(std::pair<uint64_t, geometry_msgs::PoseWithCovari
     Point3 t( p.x, p.y, p.z);
     Pose3 odom(R,t);
     // Eigen::Map<Matrix6> cov(odometry.second.covariance.data());
-    Matrix6 cov = Eigen::Map<Eigen::Matrix<double,6,6,Eigen::RowMajor> >(odometry.second.covariance.data());
+    Matrix6 cov = 0.001*Eigen::MatrixXd::Identity(6,6);
+    
     noiseModel::Gaussian::shared_ptr noise = noiseModel::Gaussian::Covariance(cov*10000);
     BetweenFactor<Pose3> dvo_factor(X(state_index_), X(state_index_-1), odom, noise);
     graph_.add(dvo_factor);
@@ -221,7 +220,6 @@ void Optimizer::optimizationLoop(){
         if (!initialized_ || image_buffer_.size() == 0){
             continue;    
         }
-        std::cout << "In loop" << std::endl;
 
         t1_ = t2_;
         if (image_buffer_.size() > 1){
@@ -253,7 +251,10 @@ void Optimizer::optimizationLoop(){
         initial_values_.insert(B(state_index_), prev_bias_);
 
         // if (state_index_ < 2)
-            graph_.print();
+        // std::cout << "printing initial values" << std::endl;
+        // initial_values_.print();
+        // std::cout << "printing factor graph" << std::endl;
+        // graph_.print();
 
         GaussNewtonOptimizer optimizer(graph_, initial_values_);
         result = optimizer.optimize();
@@ -262,10 +263,23 @@ void Optimizer::optimizationLoop(){
                             result.at<Vector3>(V(state_index_)));
 
         prev_bias_ = result.at<imuBias::ConstantBias>(B(state_index_));
+
         imu_preintegrated_ -> resetIntegrationAndSetBias(prev_bias_);
         previous_frame_time = current_frame_time;
         image_buffer_.pop_front();
 
-        std::cout << "Through optimization loop" << std::endl;
+        nav_msgs::Odometry new_odom_msg;
+        new_odom_msg.pose.pose.position.x = prev_state_.position().x();
+        new_odom_msg.pose.pose.position.y = prev_state_.position().x();
+        new_odom_msg.pose.pose.position.z = prev_state_.position().x();
+
+        new_odom_msg.pose.pose.orientation.x = prev_state_.pose().rotation().toQuaternion().x();
+        new_odom_msg.pose.pose.orientation.y = prev_state_.pose().rotation().toQuaternion().y();
+        new_odom_msg.pose.pose.orientation.z = prev_state_.pose().rotation().toQuaternion().z();
+        new_odom_msg.pose.pose.orientation.w = prev_state_.pose().rotation().toQuaternion().w();
+
+        odom_buffer_.push_back(new_odom_msg);
+
+        // std::cout << "Through optimization loop" << std::endl;
     }
 }

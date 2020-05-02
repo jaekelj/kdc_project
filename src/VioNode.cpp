@@ -49,6 +49,10 @@ void VioNode::dynamicsCallback(const blackbird::MotorRPM::ConstPtr& msg){
 
 void VioNode::imageCallback(const sensor_msgs::ImageConstPtr &cam0, const sensor_msgs::ImageConstPtr &cam1)
 {
+    while (optimizer_.odom_buffer_.size() != 0){
+        odom_pub.publish(optimizer_.odom_buffer_[0]);
+        optimizer_.odom_buffer_.pop_front();
+    }
 
     cv_bridge::CvImagePtr cam0_ptr = cv_bridge::toCvCopy(cam0);
     cv_bridge::CvImagePtr cam1_ptr = cv_bridge::toCvCopy(cam1);
@@ -88,7 +92,7 @@ void VioNode::imageCallback(const sensor_msgs::ImageConstPtr &cam0, const sensor
     Eigen::Matrix6f cov_mat = multi_dvo -> getCovariance();
     for (int i = 0; i < 6; i++){
         for (int j = 0; j < 6; j++){
-        odom_msg.pose.covariance[i*6 + j] = cov_mat(i,j);
+            odom_msg.pose.covariance[i*6 + j] = cov_mat(i,j);
         }
     }
 
@@ -122,7 +126,7 @@ int main(int argc, char **argv){
     message_filters::Subscriber<sensor_msgs::Image> image_subL(nh, p.left_image_topics[0],10);
     message_filters::Subscriber<sensor_msgs::Image> image_subR(nh, p.right_image_topics[0],10);
     std::cout << "subscribing to " << p.left_image_topics[0] << " and " << p.right_image_topics[0] << std::endl;
-    
+
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol_multi;
     message_filters::Synchronizer<sync_pol_multi> sync_multi(sync_pol_multi(1000), image_subL, image_subR);
     sync_multi.registerCallback(boost::bind(&VioNode::imageCallback, &vio, _1, _2));
