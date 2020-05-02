@@ -79,39 +79,70 @@ void Optimizer::addImuFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double
 {
     NonlinearFactorGraph imuFactors_;
     std::vector<int> imuFactorTypes_;
- 
+
     for (std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>>::iterator it = data_to_add.begin() ; it != data_to_add.end(); ++it)
     {
-        Eigen::Matrix<double,7,1> imuMeasurement = it->second; 
+        Eigen::Matrix<double,7,1> imuMeasurement = it->second;
         imu_preintegrated_->integrateMeasurement(Vector3(imuMeasurement[1],imuMeasurement[2],imuMeasurement[3]),
-                                           Vector3(imuMeasurement[4],imuMeasurement[5],imuMeasurement[6]), 
+                                           Vector3(imuMeasurement[4],imuMeasurement[5],imuMeasurement[6]),
                                            imuMeasurement[0]);
     }
 
 
     PreintegratedCombinedMeasurements *preint_imu = dynamic_cast<PreintegratedCombinedMeasurements*>(imu_preintegrated_);
-    
+
     CombinedImuFactor imu_factor(X(state_index_-1), V(state_index_-1),
                  X(state_index_  ), V(state_index_  ),
-                 B(state_index_-1), B(state_index_), 
+                 B(state_index_-1), B(state_index_),
                  *preint_imu);
 
     graph_.add(imu_factor);
-   
+
 }
 
 
-void Optimizer::addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> data_to_add){
+void Optimizer::addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> dynamics_data_to_add,
+                                  std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> imu_data_to_add){
     NonlinearFactorGraph dynamicsFactors_;
     std::vector<int> dynamicsFactorTypes_;
 
-    for (std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>>::iterator it = data_to_add.begin() ; it != data_to_add.end(); ++it)
+    for (std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>>::iterator it = dynamics_data_to_add.begin() ; it != dynamics_data_to_add.end(); ++it)
     {
         Eigen::Matrix<double,5,1> dynamicsMeasurement = it->second;
 
-        // dynamics_preintegrated_->integrateMeasurement(Vector3(imuMeasurement[1],imuMeasurement[2],imuMeasurement[3]),
-                                        //    Vector3(imuMeasurement[4],imuMeasurement[5],imuMeasurement[6]),
-                                        //    imuMeasurement[0]); // TODO update line for dynamics
+        // get IMU measurement from right before dynamics measurement  TODO interpolate
+        auto dynamicsTime = it->first;
+        // TODO optimize loop to not start from scratch each time
+        std::pair<uint64_t,Eigen::Matrix<double,7,1>> prev_imu = *imu_data_to_add.begin();
+        std::pair<uint64_t,Eigen::Matrix<double,7,1>> next_imu;
+
+        for (auto it = imu_data_to_add.begin(); it != imu_data_to_add.end(); ++it) {
+          if (it->first >= dynamicsTime){
+            next_imu = *it;
+            break;
+          }
+        }
+
+        // TODO interpolate IMU
+
+        // TODO calculate thrust
+        double gamma = 0.01;
+        double ct = 2.081e-08; // from in flight calibration
+        double m = 0.915; // TODO remove hardcode
+
+        double T = 0;
+        for (int i = 1; i < 5; ++i) {
+          T += std::pow(dynamicsMeasurement[i],2)*gamma;
+        }
+
+        T = T*ct/m;
+
+        Eigen::Vector3d T_b(0, 0, T);
+
+        // dt
+        double dt = dynamicsMeasurement[1]; // previously calculated dt
+
+        // dynamics_preintegrated_->integrateMeasurement(T_b, prev_imu.second, dt);
     }
 
 
@@ -209,7 +240,7 @@ void Optimizer::optimizationLoop(){
         // std::cout << "buffer size: " << image_buffer_.size() << std::endl;
         if (initialized_){
             // std::cout << "initialized" << std::endl;
-            t2_ =  std::chrono::high_resolution_clock::now(); 
+            t2_ =  std::chrono::high_resolution_clock::now();
             std::chrono::duration<double>time_span = t2_ - t1_;
             // std::cout << "time diff is " << time_span.count() << std::endl;
             if(time_span.count()>5){
@@ -219,7 +250,7 @@ void Optimizer::optimizationLoop(){
         }
 
         if (!initialized_ || image_buffer_.size() == 0){
-            continue;    
+            continue;
         }
         std::cout << "In loop" << std::endl;
 
