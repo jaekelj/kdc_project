@@ -75,29 +75,31 @@ void Optimizer::initializeGraph(uint64_t current_time){
     t2_ =  std::chrono::high_resolution_clock::now();
 }
 
-void Optimizer::addImuFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> data_to_add){
+void Optimizer::addImuFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> data_to_add)
+{
     NonlinearFactorGraph imuFactors_;
     std::vector<int> imuFactorTypes_;
-
+ 
     for (std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>>::iterator it = data_to_add.begin() ; it != data_to_add.end(); ++it)
     {
-        Eigen::Matrix<double,7,1> imuMeasurement = it->second;
+        Eigen::Matrix<double,7,1> imuMeasurement = it->second; 
         imu_preintegrated_->integrateMeasurement(Vector3(imuMeasurement[1],imuMeasurement[2],imuMeasurement[3]),
-                                           Vector3(imuMeasurement[4],imuMeasurement[5],imuMeasurement[6]),
+                                           Vector3(imuMeasurement[4],imuMeasurement[5],imuMeasurement[6]), 
                                            imuMeasurement[0]);
     }
 
 
-    PreintegratedCombinedMeasurements *preint_imu = dynamic_cast<PreintegratedCombinedMeasurements*>(imu_preintegrated_); // analagous
-
+    PreintegratedCombinedMeasurements *preint_imu = dynamic_cast<PreintegratedCombinedMeasurements*>(imu_preintegrated_);
+    
     CombinedImuFactor imu_factor(X(state_index_-1), V(state_index_-1),
                  X(state_index_  ), V(state_index_  ),
-                 B(state_index_-1), B(state_index_),
-                 *preint_imu); // analogous
+                 B(state_index_-1), B(state_index_), 
+                 *preint_imu);
 
     graph_.add(imu_factor);
-
+   
 }
+
 
 void Optimizer::addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> data_to_add){
     NonlinearFactorGraph dynamicsFactors_;
@@ -106,6 +108,7 @@ void Optimizer::addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<d
     for (std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>>::iterator it = data_to_add.begin() ; it != data_to_add.end(); ++it)
     {
         Eigen::Matrix<double,5,1> dynamicsMeasurement = it->second;
+
         // dynamics_preintegrated_->integrateMeasurement(Vector3(imuMeasurement[1],imuMeasurement[2],imuMeasurement[3]),
                                         //    Vector3(imuMeasurement[4],imuMeasurement[5],imuMeasurement[6]),
                                         //    imuMeasurement[0]); // TODO update line for dynamics
@@ -182,135 +185,19 @@ void Optimizer::setParams(){
     }
 }
 
-void Optimizer::addProjectionFactor(const std::vector<FeatureHandler::BackendFeature>& features){
-        NonlinearFactorGraph visionFactors_;
-        Values visionVariables_;
-        std::vector<int> visionFactorTypes_;
+void Optimizer::addImageFactor(std::pair<uint64_t, geometry_msgs::PoseWithCovariance> odometry)
+{
+    geometry_msgs::Point p = odometry.second.pose.position;
+    geometry_msgs::Quaternion q = odometry.second.pose.orientation;
+    Rot3 R( q.w, q.x, q.y, q.z);
+    Point3 t( p.x, p.y, p.z);
+    Pose3 odom(R,t);
+    // Eigen::Map<Matrix6> cov(odometry.second.covariance.data());
+    Matrix6 cov = Eigen::Map<Eigen::Matrix<double,6,6,Eigen::RowMajor> >(odometry.second.covariance.data());
+    noiseModel::Gaussian::shared_ptr noise = noiseModel::Gaussian::Covariance(cov*10000);
+    BetweenFactor<Pose3> dvo_factor(X(state_index_), X(state_index_-1), odom, noise);
+    graph_.add(dvo_factor);
 
-        NonlinearFactorGraph landmarkPriorFactors_;
-        Values landmarkPriorVariables_;
-        std::vector<int> landmarkPriorFactorTypes_;
-
-        const noiseModel::Isotropic::shared_ptr cam_noise = noiseModel::Isotropic::Sigma(4,p_.sigma_pix);
-
-        SharedNoiseModel cam_noisemodel = noiseModel::Robust::Create(noiseModel::mEstimator::Huber::Create(2.37), cam_noise);
-
-        int total_counter = 0;
-        int accepted_counter = 0;
-        for(auto const& measurement : features)
-        {
-            // First assume both camera has seen the landmark
-            bool stereo_obs = true;
-            Eigen::Vector2d left_p((double) measurement.coordinate_L_.x, (double) measurement.coordinate_L_.y);
-            Eigen::Vector2d right_p((double) measurement.coordinate_R_.x, (double) measurement.coordinate_R_.y);
-            uint64_t id = measurement.fid_;
-            int pair_id = 0;
-
-            if(std::isnan(right_p[0])){ // if right point is valid
-                    stereo_obs = false;
-                    continue;
-            }
-
-            if (map_.find(id) == map_.end())
-            {
-                Landmark* landmark = new Landmark();
-                landmark->id = id;
-                Eigen::Vector4d measurement(left_p[0],left_p[1],right_p[0],right_p[1]);
-                landmark->isStereo_= true;
-                landmark->factorAdded = false;
-
-                map_.insert(std::pair<uint64_t,Landmark*>(id,landmark));
-                stateMap_.at(state_index_).insert(std::make_pair(id,landmark));
-            }
-
-            else
-            {
-                CameraSet<PinholeCamera<Cal3_S2>> monoCameras;
-                PinholeCamera<Cal3_S2>::MeasurementVector monoMeasured;
-
-                // Using propagated state for feature prediction
-                const Pose3 leftPose = prev_state_.pose().compose(P_IMU_CAML_[pair_id]);
-                const Pose3 rightPose = prev_state_.pose().compose(P_IMU_CAMR_[pair_id]);
-                const Cal3_S2 monoCal_left(p_.intrinsics_vec_L[pair_id]);
-                const Cal3_S2 monoCal_right(p_.intrinsics_vec_R[pair_id]);
-                const PinholeCamera<Cal3_S2> leftCamera_i(leftPose, monoCal_left);
-                const PinholeCamera<Cal3_S2> rightCamera_i(rightPose, monoCal_right);
-
-                // std::cout << "left cam is " << p_.intrinsics_vec_L[pair_id] << std::endl;
-                // std::cout << "right cam is " << p_.intrinsics_vec_R[pair_id] << std::endl;
-                // std::cout << "left point is " << Point2(left_p[0],left_p[1]) << std::endl;
-                // std::cout << "right point is " << Point2(right_p[0],right_p[1]) << std::endl;
-
-                monoCameras.push_back(leftCamera_i);
-                monoMeasured.push_back(Point2(left_p[0],left_p[1]));
-                monoCameras.push_back(rightCamera_i);
-                monoMeasured.push_back(Point2(right_p[0],right_p[1]));
-
-                TriangulationParameters triangulationParam;
-                triangulationParam.landmarkDistanceThreshold = 15;
-                triangulationParam.dynamicOutlierRejectionThreshold = 1;
-                triangulationParam.rankTolerance = 1e-14;
-                TriangulationResult result_ = gtsam::triangulateSafe(monoCameras, monoMeasured, triangulationParam);
-
-                Point3 pos_prior;
-                total_counter++;
-                if (!result_)
-                {
-                    // std::cout << "result is " << result_ << std::endl;
-                    // std::cout << "left cam is " << P_IMU_CAML_[pair_id] << std::endl;
-                    // // leftCamera_i.print();
-                    // std::cout << "right cam is " << P_IMU_CAMR_[pair_id] << std::endl;
-                    // rightCamera_i.print();
-                    continue;
-                }
-                else
-                {
-                    accepted_counter++;
-                    pos_prior = *result_;
-                }
-
-                // std::cout << "adding point " << id << std::endl;
-                Landmark *curr_landmark = map_.at(id);
-                stateMap_.at(state_index_).insert(std::pair<int,Landmark*>(id,curr_landmark));
-                Eigen::Vector4d measurement(left_p[0],left_p[1],right_p[0],right_p[1]);
-                if (!curr_landmark->factorAdded && curr_landmark->isStereo_)
-                {
-                    curr_landmark->observations.insert(std::make_pair(state_index_,measurement));
-                    if (curr_landmark->observations.size()>1)
-                    {
-                        initial_values_.insert(L(id), pos_prior);
-                        bool added_prior = false;
-                        for(auto const &obs : curr_landmark->observations)
-                        {
-                            if (stateMap_.find(obs.first) == stateMap_.end())
-                                 continue;
-                            Eigen::Vector4d measurement = obs.second;
-                            StereoLandmarkFactor stereoFactorUnrect = StereoLandmarkFactor(X(obs.first),L(id),cam_noisemodel, P_IMU_CAML_[pair_id], P_IMU_CAMR_[pair_id], p_.intrinsics_vec_L[pair_id], p_.intrinsics_vec_R[pair_id], Point2(measurement[0], measurement[1]), Point2(measurement[2], measurement[3]));
-                            graph_.add(stereoFactorUnrect);
-                            visionFactorTypes_.push_back(FactorType::Projection);
-                            if (!added_prior){
-                                noiseModel::Diagonal::shared_ptr landmarkPriorModel = noiseModel::Diagonal::Sigmas(Vector3(10,10,10));
-                                gtsam::PriorFactor<Point3> landmark_prior = gtsam::PriorFactor<Point3>(L(id),pos_prior,landmarkPriorModel);
-                                graph_.add(landmark_prior);
-                                landmarkPriorFactorTypes_.push_back(FactorType::Prior);
-                                added_prior = true;
-                            }
-                        }
-                        curr_landmark->factorAdded = true;
-                    }
-                }
-
-                else if (curr_landmark->factorAdded)
-                {
-                    gtsam::StereoLandmarkFactor stereoFactorUnrect = gtsam::StereoLandmarkFactor(X(state_index_),L(id),cam_noisemodel,P_IMU_CAML_[pair_id], P_IMU_CAMR_[pair_id], p_.intrinsics_vec_L[pair_id], p_.intrinsics_vec_R[pair_id], Point2(left_p[0], left_p[1]), Point2(right_p[0], right_p[1]));
-                    graph_.add(stereoFactorUnrect);
-                    visionFactorTypes_.push_back(FactorType::Projection);
-                    Eigen::Vector4d measurement(left_p[0],left_p[1],right_p[0],right_p[1]);
-                    curr_landmark->observations.insert(std::make_pair(state_index_,measurement));
-                }
-            }
-        }
-    // std::cout << "Accepted " << accepted_counter << " of " << total_counter << " features" << std::endl;
 }
 
 void Optimizer::optimizationLoop(){
@@ -318,28 +205,30 @@ void Optimizer::optimizationLoop(){
     std::vector<uint64_t> time_stamps;
     Values result, final_result;
 
-    std::cout << "starting optimization" << std::endl;
-
-    for (;;){
+       for (;;){
+        // std::cout << "buffer size: " << image_buffer_.size() << std::endl;
         if (initialized_){
-            t2_ =  std::chrono::high_resolution_clock::now();
+            // std::cout << "initialized" << std::endl;
+            t2_ =  std::chrono::high_resolution_clock::now(); 
             std::chrono::duration<double>time_span = t2_ - t1_;
+            // std::cout << "time diff is " << time_span.count() << std::endl;
             if(time_span.count()>5){
                 final_result = result;
                 break;
             }
         }
+
         if (!initialized_ || image_buffer_.size() == 0){
-            continue;
+            continue;    
         }
+        std::cout << "In loop" << std::endl;
+
         t1_ = t2_;
         if (image_buffer_.size() > 1){
-            ROS_ERROR_STREAM("WARNING: Backend can't keep up");
+            std::cout << "WARNING: Backend can't keep up" << std::endl;
         }
 
         state_index_ ++;
-        std::map<int, Landmark*> new_landmark_map;
-        stateMap_.insert(std::make_pair(state_index_,new_landmark_map));
 
         uint64_t current_frame_time = image_buffer_[0].first;
         time_stamps.push_back(current_frame_time);
@@ -350,27 +239,33 @@ void Optimizer::optimizationLoop(){
             addImuFactor(imu_data);
         }
 
-        /*  TODO: Insert projection factors into graph
-        */
-        addProjectionFactor(image_buffer_[0].second);
+        std::vector<std::pair<uint64_t, Eigen::Matrix<double, 5, 1>>> dynamics_data = getDynamicsData(previous_frame_time,current_frame_time);
+        if (dynamics_data.size() != 0){
+            addDynamicsFactor(dynamics_data);
+        }
+
+        //Add DVO factor
+        addImageFactor(image_buffer_[0]);
 
         prop_state_ = imu_preintegrated_->predict(prev_state_, prev_bias_);
         initial_values_.insert(X(state_index_), prop_state_.pose());
         initial_values_.insert(V(state_index_), prop_state_.v());
         initial_values_.insert(B(state_index_), prev_bias_);
 
-        //Runs GN Optimization on factor graph
+        // if (state_index_ < 2)
+            graph_.print();
+
         GaussNewtonOptimizer optimizer(graph_, initial_values_);
         result = optimizer.optimize();
 
-        prev_state_ = NavState(result.at<Pose3>(X(state_index_)), result.at<Vector3>(V(state_index_)));
+        prev_state_ = NavState(result.at<Pose3>(X(state_index_)),
+                            result.at<Vector3>(V(state_index_)));
 
         prev_bias_ = result.at<imuBias::ConstantBias>(B(state_index_));
-
         imu_preintegrated_ -> resetIntegrationAndSetBias(prev_bias_);
-
         previous_frame_time = current_frame_time;
-
         image_buffer_.pop_front();
+
+        std::cout << "Through optimization loop" << std::endl;
     }
 }

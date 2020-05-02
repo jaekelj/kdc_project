@@ -152,3 +152,15 @@ void Parameters::readConfig(std::string file_path){
 
     config_file.release();
 }
+
+cv::Mat Parameters::buildSkewSym(const cv::Mat& vec){
+    cv::Mat result = cv::Mat::zeros(3,3,CV_32F);
+    result.at<float>(0,1) = -vec.at<float>(0,2);
+    result.at<float>(0,2) = vec.at<float>(0,1);
+    result.at<float>(1,2) = -vec.at<float>(0,0);
+    result.at<float>(1,0) = vec.at<float>(0,2);
+    result.at<float>(2,0) = -vec.at<float>(0,1);
+    result.at<float>(2,1) = vec.at<float>(0,0);
+
+    return result;
+}   

@@ -1,7 +1,10 @@
 <launch>
   
 	<arg name="config_path" default = "$(find kdc_project)/config/euroc.yaml" />
+	<arg name="dvo_config_path" default = "$(find kdc_project)/config/euroc_dvo.yaml" />
+
 	<node name="vio_node" pkg="kdc_project" type="vio_node" output="screen"> 
 		<param name="config_file_path" type="string" value="$(arg config_path)" />
+		<param name="dvo_config" type="string" value="$(arg dvo_config_path)" />
   	</node>
 </launch>

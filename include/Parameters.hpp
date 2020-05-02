@@ -115,6 +115,10 @@ class Parameters{
 
         // Debug params
         int add_features;
+
+    private:
+        cv::Mat buildSkewSym(const cv::Mat& vec);
+
 };
 
 #endif

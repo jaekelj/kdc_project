@@ -7,13 +7,15 @@
 #include <nav_msgs/Odometry.h>
 #include <message_filters/subscriber.h>
 #include <message_filters/time_synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
 
 #include <boost/shared_ptr.hpp>
 #include <boost/circular_buffer.hpp>
 
-#include "Optimizer.hpp"
+#include <Optimizer.hpp>
 #include <Parameters.hpp>
-#include <FeatureHandler.hpp>
+#include <MultiDvo.hpp>
+#include <Dvo.hpp>
 
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Geometry>
@@ -26,13 +28,31 @@
 #include <tf/transform_datatypes.h>
 
 #include <opencv2/core/eigen.hpp>
+#include <cv_bridge/cv_bridge.h>
 
 #include <blackbird/MotorRPM.h>
 
 class VioNode{
     public:
-        VioNode(ros::NodeHandle& nh, const Parameters& p) : feature_handler_(p), optimizer_(p){
+
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+        VioNode(ros::NodeHandle& nh, const Parameters& p) : optimizer_(p){
             odom_pub = nh.advertise<nav_msgs::Odometry>("VIO_odom", 50);
+            multi_dvo.reset(new MultiDvo(2, 2));
+            multi_dvo->setNumMaxIter(100);
+            multi_dvo->setNormThresh(1e-6);
+            multi_dvo->setChangeThresh(1e-6);
+            multi_dvo->setCostThresh(1e-5);
+
+            std::string config;
+            nh.getParam("dvo_config", config);
+            dvo0.reset( new Dvo(config, 2, 2) );
+            multi_dvo->addDvo(dvo0);
+            T_cumulative_ = Eigen::Matrix4f::Identity();
+            T_1prev_ = Eigen::Matrix4f::Identity();
+            T_2prev_ = Eigen::Matrix4f::Identity();
+            initialized_ = false;
         };
 
         ~VioNode(){};
@@ -49,11 +69,19 @@ class VioNode{
 
         Optimizer optimizer_;
 
-        FeatureHandler feature_handler_;
+        // FeatureHandler feature_handler_;
 
         uint64_t prev_imu_msg_time = 0;
 
         uint64_t prev_dynamics_msg_time = 0;
+
+        std::shared_ptr<MultiDvo> multi_dvo;
+        std::shared_ptr<Dvo> dvo0, dvo1;
+
+        Eigen::Matrix4f T_cumulative_;
+        Eigen::Matrix4f T_1prev_, T_2prev_; // const velocity model history
+
+        bool initialized_;
 
 };
 

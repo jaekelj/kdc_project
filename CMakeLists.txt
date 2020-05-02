@@ -45,11 +45,16 @@ catkin_package(
 
 # file(GLOB TARGET_SRC src/*.cpp)
 set(TARGET_SRC
-        src/Parameters.cpp
-        src/FeatureHandler.cpp
+        src/BlockMatching.cpp
+        src/imageProcessing.cpp
+        src/pixelSelection.cpp
+        src/weight.cpp
         src/utils.cpp
+        src/Dvo.cpp
+        src/MultiDvo.cpp
         src/Optimizer.cpp
         src/DynamicsFactor.cpp
+        src/Parameters.cpp
 )
 
 include_directories(${OpenCV_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} ${GTSAM_INCLUDE_DIR} ${catkin_INCLUDE_DIRS} include)

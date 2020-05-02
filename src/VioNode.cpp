@@ -49,26 +49,59 @@ void VioNode::dynamicsCallback(const blackbird::MotorRPM::ConstPtr& msg){
 
 void VioNode::imageCallback(const sensor_msgs::ImageConstPtr &cam0, const sensor_msgs::ImageConstPtr &cam1)
 {
-    // std::cout << " "
-    cv_bridge::CvImageConstPtr cam0_ptr = cv_bridge::toCvCopy(cam0, sensor_msgs::image_encodings::MONO8);
-    cv_bridge::CvImageConstPtr cam1_ptr = cv_bridge::toCvCopy(cam1, sensor_msgs::image_encodings::MONO8);
 
-   // Initialize the optimizer on the first image
+    cv_bridge::CvImagePtr cam0_ptr = cv_bridge::toCvCopy(cam0);
+    cv_bridge::CvImagePtr cam1_ptr = cv_bridge::toCvCopy(cam1);
+
     if (!optimizer_.isInitialized()){
         optimizer_.initializeGraph(cam0->header.stamp.toNSec());
         optimizer_.setInitialTime(cam0->header.stamp.toNSec());
         optimizer_.startThread();
-        feature_handler_.initializeFeatures(cam0_ptr->image, cam1_ptr->image, 0);
+        return;
     }
-    else
-    {
-        feature_handler_.temporalMatch(cam0_ptr->image, cam1_ptr->image, cam0->header.stamp.toNSec(), 0);
-        feature_handler_.removeRedundantFeatures();
-        feature_handler_.addFeatures(cam0_ptr->image, cam1_ptr->image, 0);
-        optimizer_.addImageMeasurement(std::make_pair(cam0->header.stamp.toNSec(),feature_handler_.sendToRANSAC(cam0, cam1)));
-        // feature_handler_.sendToRANSAC(cam0, cam1);
+
+    if (initialized_) {
+        multi_dvo->setInitTransform( T_1prev_*T_2prev_*(T_1prev_.inverse()) );
+        std::vector<cv::Mat> inputs;
+        inputs.push_back(cam0_ptr->image);
+        inputs.push_back(cam0_ptr->image);
+        multi_dvo->track(inputs);
     }
-    feature_handler_.setPrevImage(cam0_ptr->image);
+
+    Eigen::Matrix4f T_curr_prev = multi_dvo->getRelativePose();
+    T_cumulative_ = T_cumulative_*T_curr_prev.inverse();
+
+    Eigen::Quaternion<float> q;
+    Eigen::Matrix3f rotm = T_curr_prev.topLeftCorner(3,3);
+    q = Eigen::Quaternion<float>(rotm);
+
+    nav_msgs::Odometry odom_msg;
+    odom_msg.pose.pose.position.x = T_curr_prev(0,3);
+    odom_msg.pose.pose.position.y = T_curr_prev(1,3);
+    odom_msg.pose.pose.position.z = T_curr_prev(2,3);
+    odom_msg.pose.pose.orientation.x = q.x();
+    odom_msg.pose.pose.orientation.y = q.y();
+    odom_msg.pose.pose.orientation.z = q.z();
+    odom_msg.pose.pose.orientation.w = q.w();
+    odom_msg.header.stamp = cam0 -> header.stamp;
+
+    Eigen::Matrix6f cov_mat = multi_dvo -> getCovariance();
+    for (int i = 0; i < 6; i++){
+        for (int j = 0; j < 6; j++){
+        odom_msg.pose.covariance[i*6 + j] = cov_mat(i,j);
+        }
+    }
+
+    dvo0->setReference(cam0_ptr->image, cam0_ptr->image);
+
+    // update history for motion model
+    T_2prev_ = T_1prev_;
+    T_1prev_ = T_curr_prev;
+
+    initialized_ = true;
+
+    std::pair<uint64_t, geometry_msgs::PoseWithCovariance> msg_to_push(odom_msg.header.stamp.toNSec(), odom_msg.pose);
+    optimizer_.addImageMeasurement(msg_to_push);
 }
 
 
@@ -89,6 +122,7 @@ int main(int argc, char **argv){
     message_filters::Subscriber<sensor_msgs::Image> image_subL(nh, p.left_image_topics[0],10);
     message_filters::Subscriber<sensor_msgs::Image> image_subR(nh, p.right_image_topics[0],10);
     std::cout << "subscribing to " << p.left_image_topics[0] << " and " << p.right_image_topics[0] << std::endl;
+    
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol_multi;
     message_filters::Synchronizer<sync_pol_multi> sync_multi(sync_pol_multi(1000), image_subL, image_subR);
     sync_multi.registerCallback(boost::bind(&VioNode::imageCallback, &vio, _1, _2));

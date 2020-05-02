@@ -48,10 +48,10 @@
 #include <map>
 
 // Local includes
-#include <FeatureHandler.hpp>
+// #include <FeatureHandler.hpp>
 #include <Parameters.hpp>
-#include <StereoLandmarkFactors.hpp>
-#include <Sparsifier.h>
+// #include <StereoLandmarkFactors.hpp>
+// #include <Sparsifier.h>
 #include <DynamicsFactor.hpp>
 
 using namespace gtsam;
@@ -104,17 +104,12 @@ class Optimizer{
 
         boost::circular_buffer<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> imu_buffer_;
         boost::circular_buffer<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> dynamics_buffer_;
-        boost::circular_buffer<std::pair<uint64_t, std::vector<FeatureHandler::BackendFeature>>> image_buffer_;
+        boost::circular_buffer<std::pair<uint64_t, geometry_msgs::PoseWithCovariance>> image_buffer_;
 
         std::thread optimization_thread_;
 
         std::chrono::high_resolution_clock::time_point t1_;
         std::chrono::high_resolution_clock::time_point t2_;
-
-        std::map<uint64_t, Landmark*, std::less<uint64_t>, Eigen::aligned_allocator<Landmark> > map_;
-
-        std::map<int, std::map<int,Landmark*> > stateMap_;
-        // std::map<int,Landmark*> idLandmarks_;
 
     public:
         Optimizer(const Parameters& p) : p_(p){
@@ -139,7 +134,7 @@ class Optimizer{
 
         void addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> data_to_add);
 
-        void addProjectionFactor(const std::vector<FeatureHandler::BackendFeature>& features);
+        void addImageFactor(std::pair<uint64_t, geometry_msgs::PoseWithCovariance>);
 
         void optimizationLoop();
 
@@ -155,7 +150,7 @@ class Optimizer{
             dynamics_buffer_.push_back(dynamics_msg);
         };
 
-        void addImageMeasurement(std::pair<uint64_t, std::vector<FeatureHandler::BackendFeature>> image_msg){
+        void addImageMeasurement(std::pair<uint64_t, geometry_msgs::PoseWithCovariance> image_msg){
             image_buffer_.push_back(image_msg);
         };
 
