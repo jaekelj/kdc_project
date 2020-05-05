@@ -11,16 +11,15 @@ T_cam0_imu: !!opencv-matrix
   cols: 4
   dt: d
   data: [0.0, 1.0, 0.0, 0.05,
-          0.0, 0.0, 1.0, 0.0,
-          1.0, 0.0, 0.0, 0.0,
-          0.0, 0.0, 0.0, 1.0,]
+        0.0, 0.0, 1.0, 0.0,
+        1.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 1.0]
 
 cam0_distortion_coeffs: !!opencv-matrix    
   rows: 1
   cols: 4
   dt: d
   data: [0, 0, 0, 0]
-
 
 cam0_intrinsics: !!opencv-matrix
   rows: 1
@@ -34,17 +33,17 @@ T_cam1_imu: !!opencv-matrix
   cols: 4
   dt: d
   data: [0.0, 1.0, 0.0, -0.05,
-          0.0, 0.0, 1.0, 0.0,
-          1.0, 0.0, 0.0, 0.0,
-          0.0, 0.0, 0.0, 1.0,]
+        0.0, 0.0, 1.0, 0.0,
+        1.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 1.0]
 T_cn_cnm1: !!opencv-matrix
   rows: 4
   cols: 4
   dt: d
   data: [1.0, 0.0, 0.0, 0.0,
-         0.0, 1.0, 0.0, -1.0,
-         0.0, 0.0, 1.0, 0.0,
-         0.0, 0.0, 0.0, 1.0,]
+        0.0, 1.0, 0.0, -1.0,
+        0.0, 0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0, 1.0]
 
 cam1_distortion_coeffs: !!opencv-matrix   
   rows: 1
