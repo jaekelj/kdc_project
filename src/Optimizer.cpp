@@ -105,7 +105,7 @@ void Optimizer::addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<d
     NonlinearFactorGraph dynamicsFactors_;
     std::vector<int> dynamicsFactorTypes_;
 
-    std::cout << "adding dynamics factor with " << dynamics_data_to_add.size() << " measurements" << std::endl;
+    std::cout << "adding dynamics factor with " << dynamics_data_to_add.size() << " dynamics measurements and " << imu_data_to_add.size() << " imu measurements" << std::endl;
     for (std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>>::iterator it = dynamics_data_to_add.begin() ; it != dynamics_data_to_add.end(); ++it)
     {
         Eigen::Matrix<double,5,1> dynamicsMeasurement = it->second;
@@ -142,9 +142,8 @@ void Optimizer::addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<d
         // dt
         double dt = dynamicsMeasurement[1]; // previously calculated dt
 
-        // dynamics_preintegrated_->integrateMeasurement(T_b, prev_imu.second, dt);
+        dynamics_preintegrated_->integrateMeasurement(T_b, prev_imu.second, dt);
     }
-
 
     PreintegratedCombDynamicsMeasurements *preint_dynamics = dynamic_cast<PreintegratedCombDynamicsMeasurements*>(dynamics_preintegrated_);
     DynamicsFactor dynamics_factor(X(state_index_-1), V(state_index_-1), X(state_index_), V(state_index_), *preint_dynamics); // TODO check
@@ -278,6 +277,9 @@ void Optimizer::optimizationLoop(){
 
         //Add DVO factor
         addImageFactor(image_buffer_[0]);
+
+        std::cout << "imu buffer size is " << imu_buffer_.size() << std::endl;
+        std::cout << "dynamics buffer size is " << dynamics_buffer_.size() << std::endl;
 
         prop_state_ = imu_preintegrated_->predict(prev_state_, prev_bias_);
         initial_values_.insert(X(state_index_), prop_state_.pose());

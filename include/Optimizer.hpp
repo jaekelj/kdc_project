@@ -115,6 +115,7 @@ class Optimizer{
             velocity_noise_model_ = noiseModel::Isotropic::Sigma(3,1e-10);
             bias_noise_model_ = noiseModel::Diagonal::Sigmas((Vector(6) << 0.05, 0.05, 0.05, 0.01,0.01,0.01).finished());
             imu_buffer_.set_capacity(2000000);
+            dynamics_buffer_.set_capacity(2000000);
             image_buffer_.set_capacity(20000);
             odom_buffer_.set_capacity(10000);
             initialized_ = false;

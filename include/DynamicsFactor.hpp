@@ -22,6 +22,8 @@ class PreintegratedCombDynamicsMeasurements : public PreintegrationType {
 
   public:
 
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
     struct DynamicsParams {
       Eigen::Matrix<double, 3, 1> g_vec; // gravity vector
       Eigen::Matrix<double, 3, 3> D; // drag matrix
