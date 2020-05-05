@@ -29,7 +29,7 @@ void VioNode::dynamicsCallback(const blackbird::MotorRPM::ConstPtr& msg){
     Eigen::Vector4d rotor_rpm;
 
     for (int i = 0; i < msg->rpm.size(); ++i) {
-      rotor_rpm << msg->rpm[i];
+      rotor_rpm[i] = msg->rpm[i];
     }
 
     uint64_t msg_time = msg->header.stamp.toNSec();
@@ -40,7 +40,8 @@ void VioNode::dynamicsCallback(const blackbird::MotorRPM::ConstPtr& msg){
     }
 
     Eigen::Matrix<double,5,1> dynamicsMeasurement;
-    dynamicsMeasurement << (msg_time - prev_dynamics_msg_time) / 1e9, rotor_rpm;
+    dynamicsMeasurement << (msg_time - prev_dynamics_msg_time) / 1e9, rotor_rpm[0],
+                            rotor_rpm[1], rotor_rpm[2], rotor_rpm[3];
 
     std::pair<uint64_t,Eigen::Matrix<double,5,1>> msg_to_push(msg_time, dynamicsMeasurement);
     prev_dynamics_msg_time = msg_time;
