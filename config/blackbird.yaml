@@ -93,6 +93,7 @@ grid_min_feature_num: 3
 grid_max_feature_num: 7
 
 #================================ ROS Topics ================================
+motors_topic: "/blackbird/rotor_rpm"
 imu_topic: "/blackbird/imu"
 image_topics:
   - left: "/uav/camera/Camera_Left_Gray/image_rect"

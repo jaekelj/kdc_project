@@ -54,6 +54,8 @@ class VioNode{
             T_1prev_ = Eigen::Matrix4f::Identity();
             T_2prev_ = Eigen::Matrix4f::Identity();
             initialized_ = false;
+
+            image_counter_ = 0;
         };
 
         ~VioNode(){};
@@ -70,8 +72,6 @@ class VioNode{
 
         Optimizer optimizer_;
 
-        // FeatureHandler feature_handler_;
-
         uint64_t prev_imu_msg_time = 0;
 
         uint64_t prev_dynamics_msg_time = 0;
@@ -83,6 +83,8 @@ class VioNode{
         Eigen::Matrix4f T_1prev_, T_2prev_; // const velocity model history
 
         bool initialized_;
+
+        int image_counter_;
 
 };
 

@@ -130,7 +130,8 @@ class Optimizer{
 
         void addImuFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> data_to_add);
 
-        void addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> data_to_add);
+        void addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> dynamics_data_to_add,
+                                  std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> imu_data_to_add);
 
         void addImageFactor(std::pair<uint64_t, geometry_msgs::PoseWithCovariance>);
 
@@ -154,6 +155,10 @@ class Optimizer{
 
         bool isInitialized(){
             return initialized_;
+        }
+
+        int getImuBufferSize(){
+            return imu_buffer_.size();
         }
 
         std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> getImuData(uint64_t start_time, uint64_t end_time);

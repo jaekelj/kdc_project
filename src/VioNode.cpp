@@ -49,10 +49,12 @@ void VioNode::dynamicsCallback(const blackbird::MotorRPM::ConstPtr& msg){
 
 void VioNode::imageCallback(const sensor_msgs::ImageConstPtr &cam0, const sensor_msgs::ImageConstPtr &cam1)
 {
-    std::cout << "image callback" << std::endl;
+    image_counter_++;
+    if (image_counter_ % 4 == 0){
+        return;
+    }
     while (optimizer_.odom_buffer_.size() != 0){
         odom_pub.publish(optimizer_.odom_buffer_[0]);
-        std::cout << "publishing topic" << std::endl;
         optimizer_.odom_buffer_.pop_front();
     }
 
@@ -60,10 +62,12 @@ void VioNode::imageCallback(const sensor_msgs::ImageConstPtr &cam0, const sensor
     cv_bridge::CvImagePtr cam1_ptr = cv_bridge::toCvCopy(cam1);
 
     if (!optimizer_.isInitialized()){
-        optimizer_.initializeGraph(cam0->header.stamp.toNSec());
-        optimizer_.setInitialTime(cam0->header.stamp.toNSec());
-        optimizer_.startThread();
-        return;
+        if(optimizer_.getImuBufferSize() != 0){
+            optimizer_.initializeGraph(cam0->header.stamp.toNSec());
+            optimizer_.setInitialTime(cam0->header.stamp.toNSec());
+            optimizer_.startThread();
+        }
+        return;        
     }
 
     if (initialized_) {
@@ -112,8 +116,13 @@ void VioNode::imageCallback(const sensor_msgs::ImageConstPtr &cam0, const sensor
 
 
 int main(int argc, char **argv){
+    std::cout << "start" << std::endl;
+
     ros::init(argc, argv, "vio");
     ros::NodeHandle nh("~");
+
+    ROS_INFO_STREAM("initializing");
+    std::cout << "test" << std::endl;
 
     std::string file_path;
     nh.getParam("config_file_path", file_path);
@@ -125,9 +134,12 @@ int main(int argc, char **argv){
     message_filters::Subscriber<sensor_msgs::Imu> imu_sub(nh, p.imu_topic, 1000);
     imu_sub.registerCallback(&VioNode::imuCallback, &vio);
 
+    message_filters::Subscriber<blackbird::MotorRPM> dynamics_sub(nh, p.motors_topic, 1000);
+    dynamics_sub.registerCallback(&VioNode::dynamicsCallback, &vio);
+
     message_filters::Subscriber<sensor_msgs::Image> image_subL(nh, p.left_image_topics[0],10);
     message_filters::Subscriber<sensor_msgs::Image> image_subR(nh, p.right_image_topics[0],10);
-    std::cout << "subscribing to " << p.left_image_topics[0] << " and " << p.right_image_topics[0] << std::endl;
+    std::cout << "subscribing to " << p.left_image_topics[0] << " and " << p.right_image_topics[0] << " and " <<  p.motors_topic << " and " << p.imu_topic << std::endl;
 
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol_multi;
     message_filters::Synchronizer<sync_pol_multi> sync_multi(sync_pol_multi(1000), image_subL, image_subR);
