@@ -21,7 +21,7 @@ void VioNode::imuCallback(const sensor_msgs::Imu::ConstPtr& msg){
 
     std::pair<uint64_t,Eigen::Matrix<double,7,1>> msg_to_push(msg_time, imuMeasurement);
     prev_imu_msg_time = msg_time;
-    optimizer_.addImuMeasurement(msg_to_push);
+    // optimizer_.addImuMeasurement(msg_to_push);
 }
 
 void VioNode::dynamicsCallback(const blackbird::MotorRPM::ConstPtr& msg){
@@ -44,7 +44,7 @@ void VioNode::dynamicsCallback(const blackbird::MotorRPM::ConstPtr& msg){
 
     std::pair<uint64_t,Eigen::Matrix<double,5,1>> msg_to_push(msg_time, dynamicsMeasurement);
     prev_dynamics_msg_time = msg_time;
-    optimizer_.addDynamicsMeasurement(msg_to_push);
+    // optimizer_.addDynamicsMeasurement(msg_to_push);
 }
 
 void VioNode::imageCallback(const sensor_msgs::ImageConstPtr &cam0, const sensor_msgs::ImageConstPtr &cam1)
@@ -53,46 +53,46 @@ void VioNode::imageCallback(const sensor_msgs::ImageConstPtr &cam0, const sensor
     cv_bridge::CvImagePtr cam0_ptr = cv_bridge::toCvCopy(cam0);
     cv_bridge::CvImagePtr cam1_ptr = cv_bridge::toCvCopy(cam1);
 
-    if (!optimizer_.isInitialized()){
-        optimizer_.initializeGraph(cam0->header.stamp.toNSec());
-        optimizer_.setInitialTime(cam0->header.stamp.toNSec());
-        optimizer_.startThread();
-        return;
-    }
+    // if (!optimizer_.isInitialized()){
+    //     optimizer_.initializeGraph(cam0->header.stamp.toNSec());
+    //     optimizer_.setInitialTime(cam0->header.stamp.toNSec());
+    //     optimizer_.startThread();
+    //     return;
+    // }
 
     if (initialized_) {
         multi_dvo->setInitTransform( T_1prev_*T_2prev_*(T_1prev_.inverse()) );
         std::vector<cv::Mat> inputs;
         inputs.push_back(cam0_ptr->image);
         inputs.push_back(cam0_ptr->image);
-        multi_dvo->track(inputs);
+        // multi_dvo->track(inputs);
     }
 
-    Eigen::Matrix4f T_curr_prev = multi_dvo->getRelativePose();
-    T_cumulative_ = T_cumulative_*T_curr_prev.inverse();
-
-    Eigen::Quaternion<float> q;
-    Eigen::Matrix3f rotm = T_curr_prev.topLeftCorner(3,3);
-    q = Eigen::Quaternion<float>(rotm);
-
-    nav_msgs::Odometry odom_msg;
-    odom_msg.pose.pose.position.x = T_curr_prev(0,3);
-    odom_msg.pose.pose.position.y = T_curr_prev(1,3);
-    odom_msg.pose.pose.position.z = T_curr_prev(2,3);
+    // Eigen::Matrix4f T_curr_prev = multi_dvo->getRelativePose();
+    // T_cumulative_ = T_cumulative_*T_curr_prev.inverse();
+    //
+    // Eigen::Quaternion<float> q;
+    // Eigen::Matrix3f rotm = T_curr_prev.topLeftCorner(3,3);
+    // q = Eigen::Quaternion<float>(rotm);
+    //
+    // nav_msgs::Odometry odom_msg;
+    // odom_msg.pose.pose.position.x = T_curr_prev(0,3);
+    // odom_msg.pose.pose.position.y = T_curr_prev(1,3);
+    // odom_msg.pose.pose.position.z = T_curr_prev(2,3);
     odom_msg.pose.pose.orientation.x = q.x();
     odom_msg.pose.pose.orientation.y = q.y();
     odom_msg.pose.pose.orientation.z = q.z();
     odom_msg.pose.pose.orientation.w = q.w();
     odom_msg.header.stamp = cam0 -> header.stamp;
 
-    Eigen::Matrix6f cov_mat = multi_dvo -> getCovariance();
-    for (int i = 0; i < 6; i++){
-        for (int j = 0; j < 6; j++){
-        odom_msg.pose.covariance[i*6 + j] = cov_mat(i,j);
-        }
-    }
-
-    dvo0->setReference(cam0_ptr->image, cam0_ptr->image);
+    // Eigen::Matrix6f cov_mat = multi_dvo -> getCovariance();
+    // for (int i = 0; i < 6; i++){
+    //     for (int j = 0; j < 6; j++){
+    //     odom_msg.pose.covariance[i*6 + j] = cov_mat(i,j);
+    //     }
+    // }
+    //
+    // dvo0->setReference(cam0_ptr->image, cam0_ptr->image);
 
     // update history for motion model
     T_2prev_ = T_1prev_;
@@ -101,7 +101,7 @@ void VioNode::imageCallback(const sensor_msgs::ImageConstPtr &cam0, const sensor
     initialized_ = true;
 
     std::pair<uint64_t, geometry_msgs::PoseWithCovariance> msg_to_push(odom_msg.header.stamp.toNSec(), odom_msg.pose);
-    optimizer_.addImageMeasurement(msg_to_push);
+    // optimizer_.addImageMeasurement(msg_to_push);
 }
 
 

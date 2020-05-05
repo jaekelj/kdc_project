@@ -12,10 +12,10 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/circular_buffer.hpp>
 
-#include <Optimizer.hpp>
+// #include <Optimizer.hpp>
 #include <Parameters.hpp>
-#include <MultiDvo.hpp>
-#include <Dvo.hpp>
+// #include <MultiDvo.hpp>
+// #include <Dvo.hpp>
 
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Geometry>
@@ -37,18 +37,18 @@ class VioNode{
 
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-        VioNode(ros::NodeHandle& nh, const Parameters& p) : optimizer_(p){
+        VioNode(ros::NodeHandle& nh, const Parameters& p) {
             odom_pub = nh.advertise<nav_msgs::Odometry>("VIO_odom", 50);
-            multi_dvo.reset(new MultiDvo(2, 2));
-            multi_dvo->setNumMaxIter(100);
-            multi_dvo->setNormThresh(1e-6);
-            multi_dvo->setChangeThresh(1e-6);
-            multi_dvo->setCostThresh(1e-5);
-
-            std::string config;
-            nh.getParam("dvo_config", config);
-            dvo0.reset( new Dvo(config, 2, 2) );
-            multi_dvo->addDvo(dvo0);
+            // multi_dvo.reset(new MultiDvo(2, 2));
+            // multi_dvo->setNumMaxIter(100);
+            // multi_dvo->setNormThresh(1e-6);
+            // multi_dvo->setChangeThresh(1e-6);
+            // multi_dvo->setCostThresh(1e-5);
+            //
+            // std::string config;
+            // nh.getParam("dvo_config", config);
+            // dvo0.reset( new Dvo(config, 2, 2) );
+            // multi_dvo->addDvo(dvo0);
             T_cumulative_ = Eigen::Matrix4f::Identity();
             T_1prev_ = Eigen::Matrix4f::Identity();
             T_2prev_ = Eigen::Matrix4f::Identity();
@@ -67,7 +67,7 @@ class VioNode{
 
         ros::Publisher odom_pub;
 
-        Optimizer optimizer_;
+        // Optimizer optimizer_;
 
         // FeatureHandler feature_handler_;
 
@@ -75,8 +75,8 @@ class VioNode{
 
         uint64_t prev_dynamics_msg_time = 0;
 
-        std::shared_ptr<MultiDvo> multi_dvo;
-        std::shared_ptr<Dvo> dvo0, dvo1;
+        // std::shared_ptr<MultiDvo> multi_dvo;
+        // std::shared_ptr<Dvo> dvo0, dvo1;
 
         Eigen::Matrix4f T_cumulative_;
         Eigen::Matrix4f T_1prev_, T_2prev_; // const velocity model history
