@@ -16,7 +16,4 @@ namespace utils {
   Eigen::Matrix3f scaleIntrinsics(const Eigen::Matrix3f& K, float scale);
 }
 
-cv::Mat buildSkewSym(const cv::Mat& vec);
-
-
 #endif
