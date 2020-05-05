@@ -49,8 +49,10 @@ void VioNode::dynamicsCallback(const blackbird::MotorRPM::ConstPtr& msg){
 
 void VioNode::imageCallback(const sensor_msgs::ImageConstPtr &cam0, const sensor_msgs::ImageConstPtr &cam1)
 {
+    std::cout << "image callback" << std::endl;
     while (optimizer_.odom_buffer_.size() != 0){
         odom_pub.publish(optimizer_.odom_buffer_[0]);
+        std::cout << "publishing topic" << std::endl;
         optimizer_.odom_buffer_.pop_front();
     }
 
@@ -68,7 +70,7 @@ void VioNode::imageCallback(const sensor_msgs::ImageConstPtr &cam0, const sensor
         multi_dvo->setInitTransform( T_1prev_*T_2prev_*(T_1prev_.inverse()) );
         std::vector<cv::Mat> inputs;
         inputs.push_back(cam0_ptr->image);
-        inputs.push_back(cam0_ptr->image);
+        inputs.push_back(cam1_ptr->image);
         multi_dvo->track(inputs);
     }
 
@@ -96,7 +98,7 @@ void VioNode::imageCallback(const sensor_msgs::ImageConstPtr &cam0, const sensor
         }
     }
 
-    dvo0->setReference(cam0_ptr->image, cam0_ptr->image);
+    dvo0->setReference(cam0_ptr->image, cam1_ptr->image);
 
     // update history for motion model
     T_2prev_ = T_1prev_;

@@ -18,6 +18,9 @@ void Optimizer::initializeGraph(uint64_t current_time){
 
     }
     std::cout << "buffer size is " << imu_buffer_.size() << std::endl;
+    if (imu_buffer_.size() == 0){
+        return;
+    }
     init_a /= imu_buffer_.size();
 
     Eigen::Vector3d e_acc = init_a.normalized();
@@ -193,7 +196,7 @@ void Optimizer::addImageFactor(std::pair<uint64_t, geometry_msgs::PoseWithCovari
     // Eigen::Map<Matrix6> cov(odometry.second.covariance.data());
     Matrix6 cov = 0.001*Eigen::MatrixXd::Identity(6,6);
     
-    noiseModel::Gaussian::shared_ptr noise = noiseModel::Gaussian::Covariance(cov*10000);
+    noiseModel::Gaussian::shared_ptr noise = noiseModel::Gaussian::Covariance(cov);
     BetweenFactor<Pose3> dvo_factor(X(state_index_), X(state_index_-1), odom, noise);
     graph_.add(dvo_factor);
 
@@ -259,6 +262,7 @@ void Optimizer::optimizationLoop(){
         GaussNewtonOptimizer optimizer(graph_, initial_values_);
         result = optimizer.optimize();
 
+
         prev_state_ = NavState(result.at<Pose3>(X(state_index_)),
                             result.at<Vector3>(V(state_index_)));
 
@@ -269,17 +273,16 @@ void Optimizer::optimizationLoop(){
         image_buffer_.pop_front();
 
         nav_msgs::Odometry new_odom_msg;
+        new_odom_msg.header.frame_id = "/world";
         new_odom_msg.pose.pose.position.x = prev_state_.position().x();
-        new_odom_msg.pose.pose.position.y = prev_state_.position().x();
-        new_odom_msg.pose.pose.position.z = prev_state_.position().x();
+        new_odom_msg.pose.pose.position.y = prev_state_.position().y();
+        new_odom_msg.pose.pose.position.z = prev_state_.position().z();
 
         new_odom_msg.pose.pose.orientation.x = prev_state_.pose().rotation().toQuaternion().x();
         new_odom_msg.pose.pose.orientation.y = prev_state_.pose().rotation().toQuaternion().y();
         new_odom_msg.pose.pose.orientation.z = prev_state_.pose().rotation().toQuaternion().z();
         new_odom_msg.pose.pose.orientation.w = prev_state_.pose().rotation().toQuaternion().w();
-
+        
         odom_buffer_.push_back(new_odom_msg);
-
-        // std::cout << "Through optimization loop" << std::endl;
     }
 }

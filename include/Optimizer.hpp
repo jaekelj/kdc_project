@@ -116,6 +116,7 @@ class Optimizer{
             bias_noise_model_ = noiseModel::Diagonal::Sigmas((Vector(6) << 0.05, 0.05, 0.05, 0.01,0.01,0.01).finished());
             imu_buffer_.set_capacity(2000000);
             image_buffer_.set_capacity(20000);
+            odom_buffer_.set_capacity(10000);
             initialized_ = false;
         };
 
@@ -139,15 +140,15 @@ class Optimizer{
             previous_frame_time = initial_time;
         };
 
-        void addImuMeasurement(std::pair<uint64_t,Eigen::Matrix<double,7,1>> imu_msg){
+        void addImuMeasurement(const std::pair<uint64_t,Eigen::Matrix<double,7,1>>& imu_msg){
             imu_buffer_.push_back(imu_msg);
         };
 
-        void addDynamicsMeasurement(std::pair<uint64_t,Eigen::Matrix<double,5,1>> dynamics_msg){
+        void addDynamicsMeasurement(const std::pair<uint64_t,Eigen::Matrix<double,5,1>>& dynamics_msg){
             dynamics_buffer_.push_back(dynamics_msg);
         };
 
-        void addImageMeasurement(std::pair<uint64_t, geometry_msgs::PoseWithCovariance> image_msg){
+        void addImageMeasurement(const std::pair<uint64_t, geometry_msgs::PoseWithCovariance>& image_msg){
             image_buffer_.push_back(image_msg);
         };
 
