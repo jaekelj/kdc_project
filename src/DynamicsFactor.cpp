@@ -1,15 +1,15 @@
 #include <DynamicsFactor.hpp>
 
 
-DynamicsFactor::DynamicsFactor(Key pose_i, Key pose_j, Key vel_i, Key vel_j, const PreintegratedCombDynamicsMeasurements& pidm) : 
+DynamicsFactor::DynamicsFactor(Key pose_i, Key pose_j, Key vel_i, Key vel_j, const PreintegratedCombDynamicsMeasurements& pidm) :
   _PIDM_(pidm), Base(noiseModel::Gaussian::Covariance(pidm.preintMeasCov_), pose_i, vel_i, pose_j, vel_j) {
-    
+
   }
 
 //------------------------------------------------------------------------------
 // Inner class PreintegratedCombinedMeasurements methods
 //------------------------------------------------------------------------------
-void PreintegratedCombDynamicsMeasurements::setupDragMatrix(const Eigen::Matrix<double, 3, 3>& 
+void PreintegratedCombDynamicsMeasurements::setupDragMatrix(const Eigen::Matrix<double, 3, 3>&
                                                             drag_mat) {
 
   this->dyn_params.D = drag_mat;
@@ -17,7 +17,7 @@ void PreintegratedCombDynamicsMeasurements::setupDragMatrix(const Eigen::Matrix<
 
 //------------------------------------------------------------------------------
 void PreintegratedCombDynamicsMeasurements::resetParams() {
-  
+
   dyn_params.D.setZero();
   dyn_params.dR.setIdentity();
   dyn_params.dtij = 0.0f;
@@ -41,17 +41,17 @@ void PreintegratedCombDynamicsMeasurements::resetParams() {
 //------------------------------------------------------------------------------
 // integrates one measurement of mass-normalized thrust T_b, and un-biased gyro
 // imu_measurement for time interval dt
-void PreintegratedCombDynamicsMeasurements::integrateMeasurement(const Eigen::Vector3d& T_b,
-                                                                const Eigen::Matrix<double,7,1>& imu_measurement,
+void PreintegratedCombDynamicsMeasurements::integrateMeasurement(const Vector3& T_b,
+                                                                const Vector3& imu_measurement,
                                                                 const double& dt) {
 
-  // taking out the gyro values from the imu measurement vector                                                                
-  Eigen::Vector3d gyr(imu_measurement(4), imu_measurement(5), imu_measurement(6));
-  
+  // taking out the gyro values from the imu measurement vector
+  Eigen::Vector3d gyr(imu_measurement(0), imu_measurement(1), imu_measurement(2));
+
   // deltas in nav state
-  Eigen::Matrix<double, 3, 1> dT_nav(this->dyn_params.dR * T_b * dt); 
-  Eigen::Matrix<double, 3, 3> dD_nav(this->dyn_params.dR 
-                                    * this->dyn_params.D 
+  Eigen::Matrix<double, 3, 1> dT_nav(this->dyn_params.dR * T_b * dt);
+  Eigen::Matrix<double, 3, 3> dD_nav(this->dyn_params.dR
+                                    * this->dyn_params.D
                                     * this->dyn_params.dR.transpose()
                                     * dt);
 
@@ -68,16 +68,16 @@ void PreintegratedCombDynamicsMeasurements::integrateMeasurement(const Eigen::Ve
   this->dyn_params.SPi_D += this->dyn_params.Pi_D * dtbar;
   this->dyn_params.SPi_Dg += this->dyn_params.Pi_Dg * dtbar;
   this->dyn_params.SPi_DT += this->dyn_params.Pi_DT * dtbar;
-  this->dyn_params.SPi_DD += this->dyn_params.Pi_DD * dtbar; 
+  this->dyn_params.SPi_DD += this->dyn_params.Pi_DD * dtbar;
 
   // integrating velocity terms
   this->dyn_params.Pi_Dg = this->dyn_params.dD_nav_1 * this->dyn_params.dtij_1;
   this->dyn_params.Pi_DT = this->dyn_params.dD_nav_1 * this->dyn_params.Pi_T;
   this->dyn_params.Pi_DD = this->dyn_params.dD_nav_1 * this->dyn_params.Pi_D;
-  this->dyn_params.Pi_g += this->dyn_params.g_vec * dt; 
+  this->dyn_params.Pi_g += this->dyn_params.g_vec * dt;
   this->dyn_params.Pi_T += dT_nav;
   this->dyn_params.Pi_D += dD_nav;
-  
+
   // updating values for the next iteration
   this->dyn_params.dt_1 = dt;
   this->dyn_params.dtij_1 = this->dyn_params.dtij;
@@ -102,10 +102,10 @@ Eigen::Vector3d PreintegratedCombDynamicsMeasurements::predictVelocity( \
                                                         const Eigen::Matrix3d& R_i) const{
 
   Eigen::Vector3d v_j = Eigen::Vector3d::Zero();
-  
+
   // ********* USE the following implementation for world frame v_j *************
-  // v_j = v_i  
-  //       + this->dyn_params.Pi_g 
+  // v_j = v_i
+  //       + this->dyn_params.Pi_g
   //       + R_i * this->dyn_params.Pi_T
   //       - R_i * this->dyn_params.Pi_D * R_i.transpose() * v_i
   //       - R_i * this->dyn_params.Pi_Dg * R_i.transpose() * this->dyn_params.g_vec
@@ -130,9 +130,9 @@ Eigen::Vector3d PreintegratedCombDynamicsMeasurements::predictVelocity( \
 Eigen::Vector3d PreintegratedCombDynamicsMeasurements::predictPosition(
                                     const Eigen::Matrix3d& R_i, const Eigen::Vector3d& v_i,
                                     const Eigen::Vector3d& v_j, const Eigen::Vector3d& p_i) const{
-  
+
   Eigen::Vector3d p_j = Eigen::Vector3d::Zero();
-  
+
   // assuming v_i, v_j are in the world frame
   // p_j = p_i
   //     + this->dyn_params.dtij * v_i
@@ -143,11 +143,11 @@ Eigen::Vector3d PreintegratedCombDynamicsMeasurements::predictPosition(
   //     - R_i * this->dyn_params.SPi_Dg * R_i.transpose() * this->dyn_params.g_vec
   //     - R_i * this->dyn_params.SPi_DT
   //     + R_i * this->dyn_params.SPi_DD * R_i.transpose() * v_i;
-  
+
   // assuming v_i, v_j are in the body frame (eq 2.17)
   p_j = R_i.transpose() * p_i
     + R_i.transpose() * this->dyn_params.dtij * v_i
-    + this->dyn_params.dt_1 * (v_j - v_i)/2 
+    + this->dyn_params.dt_1 * (v_j - v_i)/2
     + R_i.transpose() * this->dyn_params.SPi_g
     + this->dyn_params.SPi_T
     - this->dyn_params.SPi_D * R_i.transpose() * v_i
@@ -166,7 +166,7 @@ Eigen::Matrix3d PreintegratedCombDynamicsMeasurements::getSkew(
   skew_x << 0.0, -x(2), x(1),
             x(2), 0, -x(0),
             -x(1), x(0), 0;
-  return skew_x;          
+  return skew_x;
 }
 
 //------------------------------------------------------------------------------
@@ -176,15 +176,15 @@ Eigen::Matrix3d PreintegratedCombDynamicsMeasurements::getExpMap(
 
   Eigen::Vector3d zero_vec = Eigen::Vector3d::Zero();
   Eigen::Matrix3d exp_x = Eigen::Matrix3d::Identity();
-  if (x.isApprox(zero_vec)) { 
+  if (x.isApprox(zero_vec)) {
     return exp_x;
   }
-  else { 
+  else {
     double norm_x = x.norm();
     Eigen::Matrix3d skew_x = getSkew(x);
-    
+
     // ! RE-CHECK ! --> Unsure about the computation of the exponential map
-    
+
     // option-1
     // exp_x = x.exp(); // this requires a square matrix
 
@@ -198,7 +198,7 @@ Eigen::Matrix3d PreintegratedCombDynamicsMeasurements::getExpMap(
 //------------------------------------------------------------------------------
 // class DynamicsFactor methods
 //------------------------------------------------------------------------------
-Vector DynamicsFactor::evaluateError(const Pose3& pose_i, 
+Vector DynamicsFactor::evaluateError(const Pose3& pose_i,
                       const Vector3& vel_i, const Pose3& pose_j, const Vector3& vel_j,
                       boost::optional<Matrix&> H1,
                       boost::optional<Matrix&> H2,
@@ -207,7 +207,7 @@ Vector DynamicsFactor::evaluateError(const Pose3& pose_i,
 
 
     auto err = [&] (const Pose3& pose_i, const Vector3& vel_i, const Pose3& pose_j, const Vector3& vel_j)
-    { 
+    {
       Matrix3 Ri_T = pose_i.rotation().transpose().matrix();
 
       Vector residual_p = Ri_T*pose_j.translation().matrix() - _PIDM_.predictPosition(pose_i.rotation().matrix(), vel_i, vel_j, pose_i.translation().matrix());
@@ -225,7 +225,7 @@ Vector DynamicsFactor::evaluateError(const Pose3& pose_i,
     if (H2) *H2 = numericalDerivative42<Vector, Pose3, Vector3, Pose3, Vector3>(err, pose_i, vel_i, pose_j, vel_j);
     if (H3) *H3 = numericalDerivative43<Vector, Pose3, Vector3, Pose3, Vector3>(err, pose_i, vel_i, pose_j, vel_j);
     if (H4) *H4 = numericalDerivative44<Vector, Pose3, Vector3, Pose3, Vector3>(err, pose_i, vel_i, pose_j, vel_j);
-    
-    
+
+
     return err(pose_i, vel_i, pose_j, vel_j);
 }

@@ -63,6 +63,8 @@ void Optimizer::initializeGraph(uint64_t current_time){
 
     imu_preintegrated_ = new PreintegratedCombinedMeasurements(p,prior_bias);
 
+    dynamics_preintegrated_ = new PreintegratedCombinedMeasurements(p,prior_bias);
+
     prev_state_ = NavState(prior_pose, prior_velocity);
     prev_bias_ = prior_bias;
     prop_state_ = prev_state_;
@@ -78,25 +80,25 @@ void Optimizer::addImuFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double
     std::cout << "adding imu factor" << std::endl;
     NonlinearFactorGraph imuFactors_;
     std::vector<int> imuFactorTypes_;
- 
+
     for (std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>>::iterator it = data_to_add.begin() ; it != data_to_add.end(); ++it)
     {
-        Eigen::Matrix<double,7,1> imuMeasurement = it->second; 
+        Eigen::Matrix<double,7,1> imuMeasurement = it->second;
         imu_preintegrated_->integrateMeasurement(Vector3(imuMeasurement[1],imuMeasurement[2],imuMeasurement[3]),
-                                           Vector3(imuMeasurement[4],imuMeasurement[5],imuMeasurement[6]), 
+                                           Vector3(imuMeasurement[4],imuMeasurement[5],imuMeasurement[6]),
                                            imuMeasurement[0]);
     }
 
 
     PreintegratedCombinedMeasurements *preint_imu = dynamic_cast<PreintegratedCombinedMeasurements*>(imu_preintegrated_);
-    
+
     CombinedImuFactor imu_factor(X(state_index_-1), V(state_index_-1),
                  X(state_index_  ), V(state_index_  ),
-                 B(state_index_-1), B(state_index_), 
+                 B(state_index_-1), B(state_index_),
                  *preint_imu);
 
     graph_.add(imu_factor);
-   
+
 }
 
 
@@ -142,7 +144,7 @@ void Optimizer::addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<d
         // dt
         double dt = dynamicsMeasurement[1]; // previously calculated dt
 
-        dynamics_preintegrated_->integrateMeasurement(T_b, prev_imu.second, dt);
+        dynamics_preintegrated_->integrateMeasurement(Vector3(T_b[0],T_b[1],T_b[2]), Vector3(prev_imu.second[4],prev_imu.second[5],prev_imu.second[6]), dt);
     }
 
     PreintegratedCombDynamicsMeasurements *preint_dynamics = dynamic_cast<PreintegratedCombDynamicsMeasurements*>(dynamics_preintegrated_);
@@ -225,7 +227,7 @@ void Optimizer::addImageFactor(std::pair<uint64_t, geometry_msgs::PoseWithCovari
     Pose3 odom(R,t);
     // Eigen::Map<Matrix6> cov(odometry.second.covariance.data());
     Matrix6 cov = 0.001*Eigen::MatrixXd::Identity(6,6);
-    
+
     noiseModel::Gaussian::shared_ptr noise = noiseModel::Gaussian::Covariance(cov);
     BetweenFactor<Pose3> dvo_factor(X(state_index_), X(state_index_-1), odom, noise);
     graph_.add(dvo_factor);
@@ -241,7 +243,7 @@ void Optimizer::optimizationLoop(){
         // std::cout << "buffer size: " << image_buffer_.size() << std::endl;
         if (initialized_){
             // std::cout << "initialized" << std::endl;
-            t2_ =  std::chrono::high_resolution_clock::now(); 
+            t2_ =  std::chrono::high_resolution_clock::now();
             std::chrono::duration<double>time_span = t2_ - t1_;
             // std::cout << "time diff is " << time_span.count() << std::endl;
             if(time_span.count()>5){
@@ -251,7 +253,7 @@ void Optimizer::optimizationLoop(){
         }
 
         if (!initialized_ || image_buffer_.size() == 0){
-            continue;    
+            continue;
         }
 
         t1_ = t2_;
@@ -310,7 +312,7 @@ void Optimizer::optimizationLoop(){
         new_odom_msg.pose.pose.orientation.y = prev_state_.pose().rotation().toQuaternion().y();
         new_odom_msg.pose.pose.orientation.z = prev_state_.pose().rotation().toQuaternion().z();
         new_odom_msg.pose.pose.orientation.w = prev_state_.pose().rotation().toQuaternion().w();
-        
+
         odom_buffer_.push_back(new_odom_msg);
     }
 }

@@ -9,7 +9,7 @@
 #include <cmath>
 #include <math.h>
 
-// ! BAD PRACTICE !, I know. 
+// ! BAD PRACTICE !, I know.
 using namespace gtsam;
 
 #ifdef GTSAM_TANGENT_PREINTEGRATION
@@ -28,11 +28,11 @@ class PreintegratedCombDynamicsMeasurements : public PreintegrationType {
       Eigen::Matrix<double, 3, 1> g_vec; // gravity vector
       Eigen::Matrix<double, 3, 3> D; // drag matrix
       Eigen::Matrix<double, 3, 3> dR; // rotation
-      
+
       double dtij; // delta t from i to j
       double dtij_1; // last dtij
       double dt_1; // last dt
-      
+
       Eigen::Matrix<double, 3, 1> dT_nav_1; // last dT_nav
       Eigen::Matrix<double, 3, 3> dD_nav_1; // last dD_nav
 
@@ -73,7 +73,7 @@ class PreintegratedCombDynamicsMeasurements : public PreintegrationType {
 
     DynamicsParams dyn_params;
 
-  protected: 
+  protected:
     /* Ideally there should be a covariance matrix of preintegrated measurements here
      *
      */
@@ -86,38 +86,38 @@ class PreintegratedCombDynamicsMeasurements : public PreintegrationType {
     PreintegratedCombDynamicsMeasurements() : dyn_params() {}
     /**
      * Add a single dynamics measurement to the preintegration
-     * 
+     *
      */
     void setupDragMatrix(const Eigen::Matrix<double, 3, 3>& drag_mat);
-    void integrateMeasurement(const Eigen::Vector3d& T_b,
-                              const Eigen::Matrix<double,7,1>& imu_measurement,
+    void integrateMeasurement(const Vector3& T_b,
+                              const Vector3& imu_measurement,
                               const double& dt);
-    void resetParams();    
-    
+    void resetParams();
+
     Eigen::Matrix3d predictRotation(const Eigen::Matrix3d& R_i) const;
-    
+
     Eigen::Vector3d predictPosition(const Eigen::Matrix3d& R_i, const Eigen::Vector3d& v_i,
                                     const Eigen::Vector3d& v_j, const Eigen::Vector3d& p_i) const;
 
     Eigen::Vector3d predictVelocity(const Eigen::Vector3d& v_i, const Eigen::Matrix3d& R_i) const;
-    
+
     Eigen::Matrix3d getSkew(const Eigen::Vector3d& x);
     Eigen::Matrix3d getExpMap(const Eigen::Vector3d& x);
 
 }; // class PreintegratedCombDynamicsMeasurements
 
 class DynamicsFactor : public NoiseModelFactor4<Pose3, Vector3, Pose3, Vector3>{
-    
+
   private:
     typedef DynamicsFactor This;
     typedef NoiseModelFactor4<Pose3, Vector3, Pose3, Vector3> Base;
 
     PreintegratedCombDynamicsMeasurements _PIDM_;
 
-  public: 
+  public:
 
     DynamicsFactor(Key pose_i, Key vel_i, Key pose_j, Key vel_j, const PreintegratedCombDynamicsMeasurements& pidm);
-    
+
     Vector evaluateError(const Pose3& pose_i, const Vector3& vel_i, const Pose3& pose_j, const Vector3& vec_i,
                          boost::optional<Matrix&> H1 = boost::none,
                         boost::optional<Matrix&> H2 = boost::none,
