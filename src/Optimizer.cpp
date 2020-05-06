@@ -63,7 +63,7 @@ void Optimizer::initializeGraph(uint64_t current_time){
 
     imu_preintegrated_ = new PreintegratedCombinedMeasurements(p,prior_bias);
 
-    dynamics_preintegrated_ = new PreintegratedCombinedMeasurements(p,prior_bias);
+    dynamics_preintegrated_ = new PreintegratedCombDynamicsMeasurements();
 
     prev_state_ = NavState(prior_pose, prior_velocity);
     prev_bias_ = prior_bias;
