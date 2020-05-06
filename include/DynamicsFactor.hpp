@@ -77,7 +77,7 @@ class PreintegratedCombDynamicsMeasurements : public PreintegrationType {
     /* Ideally there should be a covariance matrix of preintegrated measurements here
      *
      */
-      Eigen::Matrix<double, 9, 9> preintMeasCov_ = 0.001*Eigen::MatrixXd::Identity(9,9);
+      Eigen::Matrix<double, 6, 6> preintMeasCov_ = 0.001*Eigen::MatrixXd::Identity(6,6);
 
 
     friend class DynamicsFactor;
@@ -91,7 +91,7 @@ class PreintegratedCombDynamicsMeasurements : public PreintegrationType {
     void setupDragMatrix(const Eigen::Matrix<double, 3, 3>& drag_mat);
     void integrateMeasurement(const Vector3& T_b,
                               const Vector3& imu_measurement,
-                              const double& dt);
+                              const double dt);
     void resetParams();
 
     Eigen::Matrix3d predictRotation(const Eigen::Matrix3d& R_i) const;

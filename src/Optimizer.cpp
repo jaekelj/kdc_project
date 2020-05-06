@@ -142,7 +142,7 @@ void Optimizer::addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<d
         Eigen::Vector3d T_b(0, 0, T);
 
         // dt
-        double dt = dynamicsMeasurement[1]; // previously calculated dt
+        double dt = dynamicsMeasurement[0]; // previously calculated dt
 
         dynamics_preintegrated_->integrateMeasurement(Vector3(T_b[0],T_b[1],T_b[2]), Vector3(prev_imu.second[4],prev_imu.second[5],prev_imu.second[6]), dt);
     }

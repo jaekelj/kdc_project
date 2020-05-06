@@ -1,7 +1,7 @@
 #include <DynamicsFactor.hpp>
 
 
-DynamicsFactor::DynamicsFactor(Key pose_i, Key pose_j, Key vel_i, Key vel_j, const PreintegratedCombDynamicsMeasurements& pidm) :
+DynamicsFactor::DynamicsFactor(Key pose_i, Key vel_i, Key pose_j, Key vel_j, const PreintegratedCombDynamicsMeasurements& pidm) :
   _PIDM_(pidm), Base(noiseModel::Gaussian::Covariance(pidm.preintMeasCov_), pose_i, vel_i, pose_j, vel_j) {
 
   }
@@ -43,7 +43,7 @@ void PreintegratedCombDynamicsMeasurements::resetParams() {
 // imu_measurement for time interval dt
 void PreintegratedCombDynamicsMeasurements::integrateMeasurement(const Vector3& T_b,
                                                                 const Vector3& imu_measurement,
-                                                                const double& dt) {
+                                                                const double dt) {
 
   // taking out the gyro values from the imu measurement vector
   Eigen::Vector3d gyr(imu_measurement(0), imu_measurement(1), imu_measurement(2));
