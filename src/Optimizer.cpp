@@ -150,6 +150,7 @@ void Optimizer::addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<d
     PreintegratedCombDynamicsMeasurements *preint_dynamics = dynamic_cast<PreintegratedCombDynamicsMeasurements*>(dynamics_preintegrated_);
     DynamicsFactor dynamics_factor(X(state_index_-1), V(state_index_-1), X(state_index_), V(state_index_), *preint_dynamics); // TODO check
     graph_.add(dynamics_factor);
+    dynamics_preintegrated_->resetIntegration();
 }
 
 std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> Optimizer::getImuData(uint64_t start_time, uint64_t end_time){
@@ -227,7 +228,7 @@ void Optimizer::addImageFactor(std::pair<uint64_t, geometry_msgs::PoseWithCovari
     Point3 t( p.x, p.y, p.z);
     Pose3 odom(R,t);
     // Eigen::Map<Matrix6> cov(odometry.second.covariance.data());
-    Matrix6 cov = 0.001*Eigen::MatrixXd::Identity(6,6);
+    Matrix6 cov = 1e-5*Eigen::MatrixXd::Identity(6,6);
 
     noiseModel::Gaussian::shared_ptr noise = noiseModel::Gaussian::Covariance(cov);
     BetweenFactor<Pose3> dvo_factor(X(state_index_), X(state_index_-1), odom, noise);
@@ -274,12 +275,12 @@ void Optimizer::optimizationLoop(){
 
         std::cout << "Dynamics buffer size is " << dynamics_buffer_.size() << std::endl;
         std::vector<std::pair<uint64_t, Eigen::Matrix<double, 5, 1>>> dynamics_data = getDynamicsData(previous_frame_time,current_frame_time);
-        if (dynamics_data.size() != 0){
-            addDynamicsFactor(dynamics_data, imu_data);
-        }
-        else{
-            std::cout << "Got 0 dynamics measurements." << std::endl;
-        }
+        // if (dynamics_data.size() != 0 && imu_data.size() != 0){
+        //     // addDynamicsFactor(dynamics_data, imu_data);
+        // }
+        // else{
+        //     std::cout << "Got 0 dynamics measurements." << std::endl;
+        // }
 
         //Add DVO factor
         addImageFactor(image_buffer_[0]);
@@ -305,6 +306,7 @@ void Optimizer::optimizationLoop(){
 
         nav_msgs::Odometry new_odom_msg;
         new_odom_msg.header.frame_id = "/world";
+        new_odom_msg.child_frame_id = "/baselink";
         new_odom_msg.pose.pose.position.x = prev_state_.position().x();
         new_odom_msg.pose.pose.position.y = prev_state_.position().y();
         new_odom_msg.pose.pose.position.z = prev_state_.position().z();

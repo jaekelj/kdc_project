@@ -1,5 +1,4 @@
 <launch>
-  
 	<arg name="config_path" default = "$(find kdc_project)/config/blackbird.yaml" />
 	<arg name="dvo_config_path" default = "$(find kdc_project)/config/blackbird_dvo.yaml" />
 
