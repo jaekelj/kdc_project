@@ -176,6 +176,7 @@ std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> Optimizer::getDynamic
 
     std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> result;
     while (dynamics_buffer_.size() > 0){
+        // std::cout << " end time is " << (long long int) end_time - (long long int) start_time << " message time is " << (long long int) dynamics_buffer_[0].first - (long long int) start_time<< std::endl;
         if (dynamics_buffer_[0].first < start_time){
             dynamics_buffer_.pop_front();
             continue;
@@ -267,21 +268,21 @@ void Optimizer::optimizationLoop(){
         time_stamps.push_back(current_frame_time);
 
         std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> imu_data = getImuData(previous_frame_time, current_frame_time);
-
         if (imu_data.size() != 0){
             addImuFactor(imu_data);
         }
 
+        std::cout << "Dynamics buffer size is " << dynamics_buffer_.size() << std::endl;
         std::vector<std::pair<uint64_t, Eigen::Matrix<double, 5, 1>>> dynamics_data = getDynamicsData(previous_frame_time,current_frame_time);
         if (dynamics_data.size() != 0){
             addDynamicsFactor(dynamics_data, imu_data);
         }
+        else{
+            std::cout << "Got 0 dynamics measurements." << std::endl;
+        }
 
         //Add DVO factor
         addImageFactor(image_buffer_[0]);
-
-        std::cout << "imu buffer size is " << imu_buffer_.size() << std::endl;
-        std::cout << "dynamics buffer size is " << dynamics_buffer_.size() << std::endl;
 
         prop_state_ = imu_preintegrated_->predict(prev_state_, prev_bias_);
         initial_values_.insert(X(state_index_), prop_state_.pose());

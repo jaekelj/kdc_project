@@ -3,7 +3,7 @@
 	<arg name="config_path" default = "$(find kdc_project)/config/blackbird.yaml" />
 	<arg name="dvo_config_path" default = "$(find kdc_project)/config/blackbird_dvo.yaml" />
 
-	<node name="vio_node" pkg="kdc_project" type="vio_node" output="screen" launch-prefix="xterm -e gdb --args"> 
+	<node name="vio_node" pkg="kdc_project" type="vio_node" output="screen"> 
 		<param name="config_file_path" type="string" value="$(arg config_path)" />
 		<param name="dvo_config" type="string" value="$(arg dvo_config_path)" />
   	</node>
