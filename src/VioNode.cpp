@@ -163,6 +163,9 @@ int main(int argc, char **argv){
     message_filters::Subscriber<blackbird::MotorRPM> dynamics_sub(nh, p.motors_topic, 1000);
     dynamics_sub.registerCallback(&VioNode::dynamicsCallback, &vio);
 
+    message_filters::Subscriber<mav_msgs::Actuators> rotors_sub(nh, p.rotors_topic, 1000);
+    rotors_sub.registerCallback(&VioNode::rotorsCallback, &vio);
+
     message_filters::Subscriber<sensor_msgs::Image> image_subL(nh, p.left_image_topics[0],10);
     message_filters::Subscriber<sensor_msgs::Image> image_subR(nh, p.right_image_topics[0],10);
     std::cout << "subscribing to " << p.left_image_topics[0] << " and " << p.right_image_topics[0] << " and " <<  p.motors_topic << " and " << p.imu_topic << std::endl;

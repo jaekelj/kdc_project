@@ -7,8 +7,8 @@ num_pairs: 1
 #================================ Camera Calibrations Settings ================================
 
 ## Each matrix below takes a point from the imu frame -> camera frame
-extrinsics: 
-  - left: !!opencv-matrix  
+extrinsics:
+  - left: !!opencv-matrix
       rows: 4
       cols: 4
       dt: d
@@ -33,8 +33,8 @@ T_W_imu: !!opencv-matrix
   dt: d
   data: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]
 
-intrinsics: 
-  - left: !!opencv-matrix  
+intrinsics:
+  - left: !!opencv-matrix
       rows: 1
       cols: 4
       dt: d
@@ -45,8 +45,8 @@ intrinsics:
       dt: d
       data: [665.107510106, 665.107510106, 511.5, 383.5]
 
-distortion_coeffs: 
-  - left: !!opencv-matrix  
+distortion_coeffs:
+  - left: !!opencv-matrix
       rows: 1
       cols: 4
       dt: d
@@ -93,10 +93,10 @@ grid_max_feature_num: 7
 
 #================================ ROS Topics ================================
 motors_topic: "/blackbird/rotor_rpm"
+rotors_topic: "/iris/motor_speed"
 imu_topic: "/blackbird/imu"
 image_topics:
   - left: "/uav/camera/Camera_Left_Gray/image_rect"
     right: "/uav/camera/Camera_Right_Gray/image_rect"
 
 visulize_pub_topic: "stereo_visualize_img"
-

@@ -68,6 +68,7 @@ class Parameters{
         // Topic names
         std::string imu_topic;
         std::string motors_topic;
+        std::string rotors_topic;
         std::vector<std::string> left_image_topics;
         std::vector<std::string> right_image_topics;
         std::string visualize_topic;

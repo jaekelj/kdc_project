@@ -109,6 +109,7 @@ void Parameters::readConfig(std::string file_path){
     // Topic names
     imu_topic = (std::string) config_file["imu_topic"];
     motors_topic = (std::string) config_file["motors_topic"];
+    rotors_topic = (std::string) config_file["rotors_topic"];
     visualize_topic = (std::string) config_file["visulize_pub_topic"];
     for (auto item : config_file["image_topics"]){
         left_image_topics.push_back((std::string) item["left"]);
