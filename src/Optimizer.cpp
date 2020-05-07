@@ -367,6 +367,12 @@ void Optimizer::optimizationLoop(){
         //     std::cout << "Got 0 dynamics measurements." << std::endl;
         // }
 
+        // Rotors factor
+        std::vector<std::pair<uint64_t, Eigen::Matrix<double, 5, 1>>> rotors_data = getRotorsData(previous_frame_time,current_frame_time);
+        if (rotors_data.size() != 0 && imu_data.size() != 0){
+            addRotorsFactor(rotors_data, imu_data);
+        }
+
         //Add DVO factor
         addImageFactor(image_buffer_[0]);
 
