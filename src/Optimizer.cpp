@@ -128,16 +128,11 @@ void Optimizer::addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<d
         // TODO interpolate IMU
 
 
-        // TODO calculate thrust
+        // Calculate thrust
         // Blackbird
-        // double gamma = 0.01;
-        // double ct = 2.081e-08; // from in flight calibration
-        // double m = 0.915; // TODO remove hardcode
-
-        // RotorS sim
-        double m = 1.52;
-        double ct = 8.549e-6;
-        double gamma = 
+        double gamma = 0.01;
+        double ct = 2.081e-08; // from in flight calibration
+        double m = 0.915; // TODO remove hardcode
 
         double T = 0;
         for (int i = 1; i < 5; ++i) {
@@ -150,6 +145,59 @@ void Optimizer::addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<d
 
         // dt
         double dt = dynamicsMeasurement[0]; // previously calculated dt
+
+        dynamics_preintegrated_->integrateMeasurement(Vector3(T_b[0],T_b[1],T_b[2]), Vector3(prev_imu.second[4],prev_imu.second[5],prev_imu.second[6]), dt);
+    }
+
+    PreintegratedCombDynamicsMeasurements *preint_dynamics = dynamic_cast<PreintegratedCombDynamicsMeasurements*>(dynamics_preintegrated_);
+    DynamicsFactor dynamics_factor(X(state_index_-1), V(state_index_-1), X(state_index_), V(state_index_), *preint_dynamics); // TODO check
+    graph_.add(dynamics_factor);
+    dynamics_preintegrated_->resetIntegration();
+}
+
+void Optimizer::addRotorsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> rotors_data_to_add,
+                                  std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> imu_data_to_add){
+    NonlinearFactorGraph rotorsFactors_;
+    std::vector<int> rotorsFactorTypes_;
+
+    // std::cout << "adding dynamics factor with " << dynamics_data_to_add.size() << " dynamics measurements and " << imu_data_to_add.size() << " imu measurements" << std::endl;
+    for (std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>>::iterator it = rotors_data_to_add.begin() ; it != rotors_data_to_add.end(); ++it)
+    {
+        Eigen::Matrix<double,5,1> rotorsMeasurement = it->second;
+
+        // get IMU measurement from right before dynamics measurement  TODO interpolate
+        auto rotorsTime = it->first;
+        // TODO optimize loop to not start from scratch each time
+        std::pair<uint64_t,Eigen::Matrix<double,7,1>> prev_imu = *imu_data_to_add.begin();
+        std::pair<uint64_t,Eigen::Matrix<double,7,1>> next_imu;
+
+        for (auto it = imu_data_to_add.begin(); it != imu_data_to_add.end(); ++it) {
+          if (it->first >= rotorsTime){
+            next_imu = *it;
+            break;
+          }
+        }
+
+        // TODO interpolate IMU
+
+
+        // Calculate thrust
+        // RotorS sim
+        double m = 1.52;
+        double ct = 8.549e-6;
+        double gamma = 1.0;
+
+        double T = 0;
+        for (int i = 1; i < 5; ++i) {
+          T += std::pow(rotorsMeasurement[i],2)*gamma;
+        }
+
+        T = T*ct/m;
+
+        Eigen::Vector3d T_b(0, 0, T);
+
+        // dt
+        double dt = rotorsMeasurement[0]; // previously calculated dt
 
         dynamics_preintegrated_->integrateMeasurement(Vector3(T_b[0],T_b[1],T_b[2]), Vector3(prev_imu.second[4],prev_imu.second[5],prev_imu.second[6]), dt);
     }
@@ -196,6 +244,27 @@ std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> Optimizer::getDynamic
 
         result.push_back(dynamics_buffer_[0]);
         dynamics_buffer_.pop_front();
+    }
+
+    return result;
+}
+
+std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> Optimizer::getRotorsData(uint64_t start_time, uint64_t end_time){
+
+    std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> result;
+    while (rotors_buffer_.size() > 0){
+        // std::cout << " end time is " << (long long int) end_time - (long long int) start_time << " message time is " << (long long int) dynamics_buffer_[0].first - (long long int) start_time<< std::endl;
+        if (rotors_buffer_[0].first < start_time){
+            rotors_buffer_.pop_front();
+            continue;
+        }
+
+        if (rotors_buffer_[0].first >= end_time || rotors_buffer_.size() == 0){
+            break;
+        }
+
+        result.push_back(rotors_buffer_[0]);
+        rotors_buffer_.pop_front();
     }
 
     return result;

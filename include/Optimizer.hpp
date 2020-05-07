@@ -101,7 +101,7 @@ class Optimizer{
         std::vector<Pose3> P_IMU_CAMR_;
 
         boost::circular_buffer<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> imu_buffer_;
-        boost::circular_buffer<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> dynamics_buffer_;
+        boost::circular_buffer<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> dynamics_buffer_, rotors_buffer_;
         boost::circular_buffer<std::pair<uint64_t, geometry_msgs::PoseWithCovariance>> image_buffer_;
 
         std::thread optimization_thread_;
@@ -135,6 +135,9 @@ class Optimizer{
         void addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> dynamics_data_to_add,
                                   std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> imu_data_to_add);
 
+        void addRotorsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> rotors_data_to_add,
+                                  std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> imu_data_to_add);
+
         void addImageFactor(std::pair<uint64_t, geometry_msgs::PoseWithCovariance>);
 
         void optimizationLoop();
@@ -149,6 +152,10 @@ class Optimizer{
 
         void addDynamicsMeasurement(const std::pair<uint64_t,Eigen::Matrix<double,5,1>>& dynamics_msg){
             dynamics_buffer_.push_back(dynamics_msg);
+        };
+
+        void addRotorsMeasurement(const std::pair<uint64_t,Eigen::Matrix<double,5,1>>& rotors_msg){
+            rotors_buffer_.push_back(rotors_msg);
         };
 
         void addImageMeasurement(const std::pair<uint64_t, geometry_msgs::PoseWithCovariance>& image_msg){
@@ -166,6 +173,8 @@ class Optimizer{
         std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> getImuData(uint64_t start_time, uint64_t end_time);
 
         std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> getDynamicsData(uint64_t start_time, uint64_t end_time);
+
+        std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> getRotorsData(uint64_t start_time, uint64_t end_time);
 
         boost::circular_buffer<nav_msgs::Odometry> odom_buffer_;
 };

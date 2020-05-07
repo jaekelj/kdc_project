@@ -48,6 +48,30 @@ void VioNode::dynamicsCallback(const blackbird::MotorRPM::ConstPtr& msg){
     optimizer_.addDynamicsMeasurement(msg_to_push);
 }
 
+void VioNode::rotorsCallback(const mav_msgs::Actuators::ConstPtr& msg){
+    // std::cout << "In Dynamics  Callback" << std::endl;
+    Eigen::Vector4d rotor_rpm;
+
+    for (int i = 0; i < msg->angular_velocities.size(); ++i) {
+      rotor_rpm[i] = msg->angular_velocities[i] * 9.5493; // convert to rpm TODO check
+    }
+
+    uint64_t msg_time = msg->header.stamp.toNSec();
+
+    if (prev_rotors_msg_time == 0){
+        prev_rotors_msg_time = msg_time;
+        return;
+    }
+
+    Eigen::Matrix<double,5,1> rotorsMeasurement;
+    rotorsMeasurement << (msg_time - prev_rotors_msg_time) / 1e9, rotor_rpm[0],
+                            rotor_rpm[1], rotor_rpm[2], rotor_rpm[3];
+
+    std::pair<uint64_t,Eigen::Matrix<double,5,1>> msg_to_push(msg_time, rotorsMeasurement);
+    prev_rotors_msg_time = msg_time;
+    optimizer_.addRotorsMeasurement(msg_to_push);
+}
+
 void VioNode::imageCallback(const sensor_msgs::ImageConstPtr &cam0, const sensor_msgs::ImageConstPtr &cam1)
 {
     image_counter_++;
@@ -68,7 +92,7 @@ void VioNode::imageCallback(const sensor_msgs::ImageConstPtr &cam0, const sensor
             optimizer_.setInitialTime(cam0->header.stamp.toNSec());
             optimizer_.startThread();
         }
-        return;        
+        return;
     }
 
     if (initialized_) {

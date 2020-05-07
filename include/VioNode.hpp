@@ -31,6 +31,7 @@
 #include <cv_bridge/cv_bridge.h>
 
 #include <blackbird/MotorRPM.h>
+#include <mav_msgs/Actuators.h>
 
 class VioNode{
     public:
@@ -39,7 +40,7 @@ class VioNode{
 
         VioNode(ros::NodeHandle& nh, const Parameters& p) : optimizer_(p){
             odom_pub = nh.advertise<nav_msgs::Odometry>("VIO_odom", 50);
-            
+
             multi_dvo.reset(new MultiDvo(2, 2));
             multi_dvo->setNumMaxIter(100);
             multi_dvo->setNormThresh(1e-6);
@@ -64,6 +65,8 @@ class VioNode{
 
         void dynamicsCallback(const blackbird::MotorRPM::ConstPtr& msg);
 
+        void rotorsCallback(const mav_msgs::Actuators::ConstPtr& msg);
+
         void imageCallback(const sensor_msgs::ImageConstPtr &cam0, const sensor_msgs::ImageConstPtr &cam1);
 
     private:
@@ -75,6 +78,8 @@ class VioNode{
         uint64_t prev_imu_msg_time = 0;
 
         uint64_t prev_dynamics_msg_time = 0;
+
+        uint64_t prev_rotors_msg_time = 0;
 
         std::shared_ptr<MultiDvo> multi_dvo;
         std::shared_ptr<Dvo> dvo0, dvo1;
