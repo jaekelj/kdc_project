@@ -46,6 +46,7 @@
 #include <fstream>
 #include <stdlib.h>
 #include <map>
+#include <cmath>
 
 // Local includes
 #include <Parameters.hpp>

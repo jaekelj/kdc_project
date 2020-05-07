@@ -31,6 +31,8 @@ void MultiDvo::track(const std::vector<cv::Mat>& inputs) {
       }
 
       Eigen::Vector6f deltat;
+      // std::cout << dvo_.size() << " number of dvos" << std::endl;
+      // std::cout << "solving system ... A: " << A << " B: " << b << " T: " << T << " deltat: " << deltat << std::endl;  
       T = solveSystem(T, A, b, deltat);
 
       // convergence checks

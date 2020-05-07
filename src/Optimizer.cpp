@@ -36,7 +36,7 @@ void Optimizer::initializeGraph(uint64_t current_time){
     Vector3 prior_velocity(0,0,0);
     imuBias::ConstantBias prior_bias; //Assume zeros bias
     // Values initial_values_;
-
+    // prior_pose.
     initial_values_.insert(X(0), prior_pose);
     initial_values_.insert(V(0), prior_velocity);
     initial_values_.insert(B(0), prior_bias);
@@ -77,7 +77,7 @@ void Optimizer::initializeGraph(uint64_t current_time){
 
 void Optimizer::addImuFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> data_to_add)
 {
-    std::cout << "adding imu factor" << std::endl;
+    // std::cout << "adding imu factor" << std::endl;
     NonlinearFactorGraph imuFactors_;
     std::vector<int> imuFactorTypes_;
 
@@ -107,7 +107,7 @@ void Optimizer::addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<d
     NonlinearFactorGraph dynamicsFactors_;
     std::vector<int> dynamicsFactorTypes_;
 
-    std::cout << "adding dynamics factor with " << dynamics_data_to_add.size() << " dynamics measurements and " << imu_data_to_add.size() << " imu measurements" << std::endl;
+    // std::cout << "adding dynamics factor with " << dynamics_data_to_add.size() << " dynamics measurements and " << imu_data_to_add.size() << " imu measurements" << std::endl;
     for (std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>>::iterator it = dynamics_data_to_add.begin() ; it != dynamics_data_to_add.end(); ++it)
     {
         Eigen::Matrix<double,5,1> dynamicsMeasurement = it->second;
@@ -127,10 +127,17 @@ void Optimizer::addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<d
 
         // TODO interpolate IMU
 
+
         // TODO calculate thrust
-        double gamma = 0.01;
-        double ct = 2.081e-08; // from in flight calibration
-        double m = 0.915; // TODO remove hardcode
+        // Blackbird
+        // double gamma = 0.01;
+        // double ct = 2.081e-08; // from in flight calibration
+        // double m = 0.915; // TODO remove hardcode
+
+        // RotorS sim
+        double m = 1.52;
+        double ct = 8.549e-6;
+        double gamma = 
 
         double T = 0;
         for (int i = 1; i < 5; ++i) {
@@ -221,14 +228,20 @@ void Optimizer::setParams(){
 
 void Optimizer::addImageFactor(std::pair<uint64_t, geometry_msgs::PoseWithCovariance> odometry)
 {
-    std::cout << "adding image factor" << std::endl;
+    // std::cout << "adding image factor" << std::endl;
     geometry_msgs::Point p = odometry.second.pose.position;
     geometry_msgs::Quaternion q = odometry.second.pose.orientation;
     Rot3 R( q.w, q.x, q.y, q.z);
     Point3 t( p.x, p.y, p.z);
+    if (std::isnan(p.x)){
+        R = Rot3(1,0,0,0);
+        t = Point3(0,0,0);
+        std::cout << "got nan" << std::endl;
+    }
+    // std::cout << "measurement is " << std::isnan(p.x) << std::endl;
     Pose3 odom(R,t);
     // Eigen::Map<Matrix6> cov(odometry.second.covariance.data());
-    Matrix6 cov = 1e-5*Eigen::MatrixXd::Identity(6,6);
+    Matrix6 cov = 5e-6*Eigen::MatrixXd::Identity(6,6);
 
     noiseModel::Gaussian::shared_ptr noise = noiseModel::Gaussian::Covariance(cov);
     BetweenFactor<Pose3> dvo_factor(X(state_index_), X(state_index_-1), odom, noise);
@@ -272,12 +285,15 @@ void Optimizer::optimizationLoop(){
         if (imu_data.size() != 0){
             addImuFactor(imu_data);
         }
+        else{
+            std::cout << "GOT 0 IMU MEASUREMENTS!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+        }
 
-        std::cout << "Dynamics buffer size is " << dynamics_buffer_.size() << std::endl;
+        // std::cout << "Dynamics buffer size is " << dynamics_buffer_.size() << std::endl;
         std::vector<std::pair<uint64_t, Eigen::Matrix<double, 5, 1>>> dynamics_data = getDynamicsData(previous_frame_time,current_frame_time);
-        // if (dynamics_data.size() != 0 && imu_data.size() != 0){
-        //     // addDynamicsFactor(dynamics_data, imu_data);
-        // }
+        if (dynamics_data.size() != 0 && imu_data.size() != 0){
+            addDynamicsFactor(dynamics_data, imu_data);
+        }
         // else{
         //     std::cout << "Got 0 dynamics measurements." << std::endl;
         // }
@@ -290,15 +306,22 @@ void Optimizer::optimizationLoop(){
         initial_values_.insert(V(state_index_), prop_state_.v());
         initial_values_.insert(B(state_index_), prev_bias_);
 
+        // initial_values_.print();
+        // graph_.print();
 
         GaussNewtonOptimizer optimizer(graph_, initial_values_);
         result = optimizer.optimize();
 
-
+        // Vector3 prior_velocity(0,0,0);
+        // prev_state_ = NavState(result.at<Pose3>(X(state_index_)), prior_velocity);
         prev_state_ = NavState(result.at<Pose3>(X(state_index_)),
                             result.at<Vector3>(V(state_index_)));
 
+
+
         prev_bias_ = result.at<imuBias::ConstantBias>(B(state_index_));
+        // imuBias::ConstantBias prior_bias; //Assume zeros bias
+        // prev_bias_ = prior_bias;
 
         imu_preintegrated_ -> resetIntegrationAndSetBias(prev_bias_);
         previous_frame_time = current_frame_time;

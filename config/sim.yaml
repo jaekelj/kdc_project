@@ -1,30 +1,32 @@
 %YAML:1.0
 
-image_width: 1024
-image_height: 768
+image_width: 752
+image_height: 480
 num_pairs: 1
 
 #================================ Camera Calibrations Settings ================================
 
-## Each matrix below takes a point from the imu frame -> camera frame
+## Each matrix below takes a point from the  imu frame -> camera frame
 extrinsics: 
   - left: !!opencv-matrix  
       rows: 4
       cols: 4
       dt: d
-      data: [0.9999180, 0.0127351, 0.0013603, -0.05,
-            0.0014684, -0.0084771, -0.9999630, 0.0,
-            -0.0127231, 0.9998830, -0.0084951, 0.001,
-            0.0, 0.0, 0.0, 1.0]
+      data:  [0.0, -1.0, 0.0, 0.055,
+              0.0, 0.0, -1.0, -0.0048,
+              1.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 1.0]
+
 
     right: !!opencv-matrix
       rows: 4
       cols: 4
       dt: d
-      data: [0.9999180, 0.0127351, 0.0013603, 0.05,
-            0.0014684, -0.0084771, -0.9999630, 0.0,
-            -0.0127231, 0.9998830, -0.0084951, -0.001,
-            0.0, 0.0, 0.0, 1.0]
+      data:  [0.0, -1.0, 0.0, -0.055,
+              0.0, 0.0, -1.0, -0.0048,
+              1.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 1.0]
+
 
 
 T_W_imu: !!opencv-matrix
@@ -38,12 +40,12 @@ intrinsics:
       rows: 1
       cols: 4
       dt: d
-      data: [665.107510106, 665.107510106, 511.5, 383.5]
+      data: [448.1008985853343, 448.1008985853343, 376.5, 240.5]
     right: !!opencv-matrix
       rows: 1
       cols: 4
       dt: d
-      data: [665.107510106, 665.107510106, 511.5, 383.5]
+      data: [448.1008985853343, 448.1008985853343, 376.5, 240.5]
 
 distortion_coeffs: 
   - left: !!opencv-matrix  
@@ -55,7 +57,7 @@ distortion_coeffs:
       rows: 1
       cols: 4
       dt: d
-      data: [0,  0, 0, 0]
+      data: [0, 0, 0, 0]
 
 #================================ IMU Params ================================
 sigma_a: 2.0e-2
@@ -92,11 +94,11 @@ grid_min_feature_num: 3
 grid_max_feature_num: 7
 
 #================================ ROS Topics ================================
-motors_topic: "/blackbird/rotor_rpm"
-imu_topic: "/blackbird/imu"
+
+imu_topic: "/iris/vi_sensor/imu"
 image_topics:
-  - left: "/uav/camera/Camera_Left_Gray/image_rect"
-    right: "/uav/camera/Camera_Right_Gray/image_rect"
+  - left: "/iris/vi_sensor/left/image_raw"
+    right: "/iris/vi_sensor/right/image_raw"
 
 visulize_pub_topic: "stereo_visualize_img"
 

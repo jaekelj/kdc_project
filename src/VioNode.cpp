@@ -51,7 +51,7 @@ void VioNode::dynamicsCallback(const blackbird::MotorRPM::ConstPtr& msg){
 void VioNode::imageCallback(const sensor_msgs::ImageConstPtr &cam0, const sensor_msgs::ImageConstPtr &cam1)
 {
     image_counter_++;
-    if (image_counter_ % 4 == 0){
+    if (image_counter_ % 3 == 0){
         return;
     }
     while (optimizer_.odom_buffer_.size() != 0){
@@ -72,7 +72,8 @@ void VioNode::imageCallback(const sensor_msgs::ImageConstPtr &cam0, const sensor
     }
 
     if (initialized_) {
-        multi_dvo->setInitTransform( T_1prev_*T_2prev_*(T_1prev_.inverse()) );
+        // multi_dvo->setInitTransform( T_1prev_*T_2prev_*(T_1prev_.inverse()) );
+        multi_dvo->setInitTransform(Eigen::Matrix4f::Identity());
         std::vector<cv::Mat> inputs;
         inputs.push_back(cam0_ptr->image);
         inputs.push_back(cam1_ptr->image);

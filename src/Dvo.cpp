@@ -113,6 +113,7 @@ void Dvo::constructSystem(const Eigen::Matrix4f &T, int scale) {
   A_ = Eigen::Matrix6f::Zero();
   b_ = Eigen::Vector6f::Zero();
   cost_sum_ = 0;
+  // std::cout << "T_c_b_ is " << T_c_b_ << " T is " << T << std::endl;
   for (int i = 0; i < p.cols(); i++) {
     if ((p(0, i) > 0) && (p(0, i) < input_pyr_[scale].cols - 1) &&
       (p(1, i) > 0) && (p(1, i) < input_pyr_[scale].rows - 1)) {

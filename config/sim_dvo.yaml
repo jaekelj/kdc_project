@@ -1,0 +1,80 @@
+%YAML:1.0
+
+camera_model: pinhole
+distortion_model: "radtan"
+image_width: 752
+image_height: 480
+
+T_cam0_imu: !!opencv-matrix
+  rows: 4
+  cols: 4
+  dt: d
+  data:  [0.0, -1.0, 0.0, 0.055,
+          0.0, 0.0, -1.0, -0.0048,
+          1.0, 0.0, 0.0, 0.0,
+          0.0, 0.0, 0.0, 1.0]
+
+cam0_distortion_coeffs: !!opencv-matrix    
+  rows: 1
+  cols: 4
+  dt: d
+  data: [0.0 , 0.0, 0.0, 0.0]
+
+
+cam0_intrinsics: !!opencv-matrix
+  rows: 1
+  cols: 4
+  dt: d
+  data: [448.1008985853343, 448.1008985853343, 376.5, 240.5]
+
+
+T_cam1_imu: !!opencv-matrix
+  rows: 4
+  cols: 4
+  dt: d
+  data:  [0.0, -1.0, 0.0, -0.055,
+          0.0, 0.0, -1.0, -0.0048,
+          1.0, 0.0, 0.0, 0.0,
+          0.0, 0.0, 0.0, 1.0]
+
+T_cn_cnm1: !!opencv-matrix
+  rows: 4
+  cols: 4
+  dt: d
+  data: [ 1, 0, 0, -0.11, 
+          0.0, 1.0, 0.0, 0.0,
+          0.0, 0.0, 1.0, 0.0, 
+          0, 0, 0, 1.0]
+
+cam1_distortion_coeffs: !!opencv-matrix   
+  rows: 1
+  cols: 5
+  dt: d
+  data: [0,0,0,0,0]
+
+cam1_intrinsics: !!opencv-matrix
+  rows: 1
+  cols: 4
+  dt: d
+  data: [448.1008985853343, 448.1008985853343, 376.5, 240.5]
+
+
+
+#================================ ROS Settings ================================
+
+imu_topic: "/iris/vi_sensor/imu"
+cam0_topic: "/iris/vi_sensor/left/image_raw"
+cam1_topic: "/iris/vi_sensor/right/image_raw"
+
+#================================= Frontend Settings ===========================
+
+grid_row: 4
+grid_col: 5
+grid_min_feature_num: 3
+grid_max_feature_num: 4
+pyramid_levels: 3
+patch_size: 3
+fast_threshold: 10
+klt_max_iteration: 30
+klt_track_precision: 0.01
+
