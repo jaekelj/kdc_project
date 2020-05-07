@@ -96,6 +96,7 @@ grid_max_feature_num: 7
 #================================ ROS Topics ================================
 
 imu_topic: "/iris/vi_sensor/imu"
+rotors_topic: "/iris/motor_speed"
 image_topics:
   - left: "/iris/vi_sensor/left/image_raw"
     right: "/iris/vi_sensor/right/image_raw"

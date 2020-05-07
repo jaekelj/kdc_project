@@ -216,6 +216,8 @@ Vector DynamicsFactor::evaluateError(const Pose3& pose_i,
       Vector result(residual_p.size() + residual_v.size());
       result << residual_p, residual_v;
 
+      std::cout << "residual is " << result << std::endl;
+
       return result;
     };
 

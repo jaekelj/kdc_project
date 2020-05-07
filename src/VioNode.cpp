@@ -49,7 +49,7 @@ void VioNode::dynamicsCallback(const blackbird::MotorRPM::ConstPtr& msg){
 }
 
 void VioNode::rotorsCallback(const mav_msgs::Actuators::ConstPtr& msg){
-    // std::cout << "In Dynamics  Callback" << std::endl;
+    // std::cout << "In Rotors Callback" << std::endl;
     Eigen::Vector4d rotor_rpm;
 
     for (int i = 0; i < msg->angular_velocities.size(); ++i) {
@@ -168,7 +168,7 @@ int main(int argc, char **argv){
 
     message_filters::Subscriber<sensor_msgs::Image> image_subL(nh, p.left_image_topics[0],10);
     message_filters::Subscriber<sensor_msgs::Image> image_subR(nh, p.right_image_topics[0],10);
-    std::cout << "subscribing to " << p.left_image_topics[0] << " and " << p.right_image_topics[0] << " and " <<  p.motors_topic << " and " << p.imu_topic << std::endl;
+    std::cout << "subscribing to " << p.left_image_topics[0] << " and " << p.right_image_topics[0] << " and " <<  p.rotors_topic << " and " << p.imu_topic << std::endl;
 
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol_multi;
     message_filters::Synchronizer<sync_pol_multi> sync_multi(sync_pol_multi(1000), image_subL, image_subR);

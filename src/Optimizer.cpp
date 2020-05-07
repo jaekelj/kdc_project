@@ -107,7 +107,7 @@ void Optimizer::addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<d
     NonlinearFactorGraph dynamicsFactors_;
     std::vector<int> dynamicsFactorTypes_;
 
-    // std::cout << "adding dynamics factor with " << dynamics_data_to_add.size() << " dynamics measurements and " << imu_data_to_add.size() << " imu measurements" << std::endl;
+    std::cout << "adding dynamics factor with " << dynamics_data_to_add.size() << " dynamics measurements and " << imu_data_to_add.size() << " imu measurements" << std::endl;
     for (std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>>::iterator it = dynamics_data_to_add.begin() ; it != dynamics_data_to_add.end(); ++it)
     {
         Eigen::Matrix<double,5,1> dynamicsMeasurement = it->second;
@@ -358,16 +358,17 @@ void Optimizer::optimizationLoop(){
             std::cout << "GOT 0 IMU MEASUREMENTS!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
         }
 
-        // std::cout << "Dynamics buffer size is " << dynamics_buffer_.size() << std::endl;
-        std::vector<std::pair<uint64_t, Eigen::Matrix<double, 5, 1>>> dynamics_data = getDynamicsData(previous_frame_time,current_frame_time);
-        if (dynamics_data.size() != 0 && imu_data.size() != 0){
-            addDynamicsFactor(dynamics_data, imu_data);
-        }
+        // std::cout << "Dynamics buffer size is " << rotors_buffer_.size() << std::endl;
+        // std::vector<std::pair<uint64_t, Eigen::Matrix<double, 5, 1>>> dynamics_data = getDynamicsData(previous_frame_time,current_frame_time);
+        // if (dynamics_data.size() != 0 && imu_data.size() != 0){
+        //     addDynamicsFactor(dynamics_data, imu_data);
+        // }
         // else{
         //     std::cout << "Got 0 dynamics measurements." << std::endl;
         // }
 
         // Rotors factor
+        std::cout << "Rotors buffer size is " << rotors_buffer_.size() << std::endl;
         std::vector<std::pair<uint64_t, Eigen::Matrix<double, 5, 1>>> rotors_data = getRotorsData(previous_frame_time,current_frame_time);
         if (rotors_data.size() != 0 && imu_data.size() != 0){
             addRotorsFactor(rotors_data, imu_data);
