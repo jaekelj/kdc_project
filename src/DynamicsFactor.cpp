@@ -38,6 +38,28 @@ void PreintegratedCombDynamicsMeasurements::resetParams() {
   dyn_params.SPi_DD.setZero();
 }
 
+// void PreintegratedCombDynamicsMeasurements::resetIntegration() {
+
+//   dyn_params.D.setZero();
+//   dyn_params.dR.setIdentity();
+//   dyn_params.dtij = 0.0f;
+//   dyn_params.dtij_1 = 0.0f;
+//   dyn_params.dT_nav_1.setZero();
+//   dyn_params.dD_nav_1.setZero();
+//   dyn_params.Pi_g.setZero();
+//   dyn_params.Pi_T.setZero();
+//   dyn_params.Pi_D.setZero();
+//   dyn_params.Pi_Dg.setZero();
+//   dyn_params.Pi_DT.setZero();
+//   dyn_params.Pi_DD.setZero();
+//   dyn_params.SPi_g.setZero();
+//   dyn_params.SPi_T.setZero();
+//   dyn_params.SPi_D.setZero();
+//   dyn_params.SPi_Dg.setZero();
+//   dyn_params.SPi_DT.setZero();
+//   dyn_params.SPi_DD.setZero();
+// }
+
 //------------------------------------------------------------------------------
 // integrates one measurement of mass-normalized thrust T_b, and un-biased gyro
 // imu_measurement for time interval dt
@@ -216,7 +238,7 @@ Vector DynamicsFactor::evaluateError(const Pose3& pose_i,
       Vector result(residual_p.size() + residual_v.size());
       result << residual_p, residual_v;
 
-      std::cout << "residual is " << result << std::endl;
+      // std::cout << "residual is " << std::endl << result << std::endl;
 
       return result;
     };

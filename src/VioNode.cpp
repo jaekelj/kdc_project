@@ -53,7 +53,7 @@ void VioNode::rotorsCallback(const mav_msgs::Actuators::ConstPtr& msg){
     Eigen::Vector4d rotor_rpm;
 
     for (int i = 0; i < msg->angular_velocities.size(); ++i) {
-      rotor_rpm[i] = msg->angular_velocities[i] * 9.5493; // convert to rpm TODO check
+      rotor_rpm[i] = msg->angular_velocities[i]; // * 9.5493; // convert to rpm TODO check
     }
 
     uint64_t msg_time = msg->header.stamp.toNSec();
@@ -74,10 +74,10 @@ void VioNode::rotorsCallback(const mav_msgs::Actuators::ConstPtr& msg){
 
 void VioNode::imageCallback(const sensor_msgs::ImageConstPtr &cam0, const sensor_msgs::ImageConstPtr &cam1)
 {
-    image_counter_++;
-    if (image_counter_ % 3 == 0){
-        return;
-    }
+    // image_counter_++;
+    // if (image_counter_ % 4 != 0){
+    //     return;
+    // }
     while (optimizer_.odom_buffer_.size() != 0){
         odom_pub.publish(optimizer_.odom_buffer_[0]);
         optimizer_.odom_buffer_.pop_front();

@@ -63,7 +63,7 @@ void Optimizer::initializeGraph(uint64_t current_time){
 
     imu_preintegrated_ = new PreintegratedCombinedMeasurements(p,prior_bias);
 
-    dynamics_preintegrated_ = new PreintegratedCombDynamicsMeasurements();
+    // dynamics_preintegrated_ = new PreintegratedCombDynamicsMeasurements();
 
     prev_state_ = NavState(prior_pose, prior_velocity);
     prev_bias_ = prior_bias;
@@ -107,6 +107,9 @@ void Optimizer::addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<d
     NonlinearFactorGraph dynamicsFactors_;
     std::vector<int> dynamicsFactorTypes_;
 
+    PreintegratedCombDynamicsMeasurements *dynamics_preintegrated_ = new PreintegratedCombDynamicsMeasurements();
+    // dynamics_preintegrated_ = std::make_shared<PreintegratedCombDynamicsMeasurements>();
+
     std::cout << "adding dynamics factor with " << dynamics_data_to_add.size() << " dynamics measurements and " << imu_data_to_add.size() << " imu measurements" << std::endl;
     for (std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>>::iterator it = dynamics_data_to_add.begin() ; it != dynamics_data_to_add.end(); ++it)
     {
@@ -149,17 +152,19 @@ void Optimizer::addDynamicsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<d
         dynamics_preintegrated_->integrateMeasurement(Vector3(T_b[0],T_b[1],T_b[2]), Vector3(prev_imu.second[4],prev_imu.second[5],prev_imu.second[6]), dt);
     }
 
-    PreintegratedCombDynamicsMeasurements *preint_dynamics = dynamic_cast<PreintegratedCombDynamicsMeasurements*>(dynamics_preintegrated_);
-    DynamicsFactor dynamics_factor(X(state_index_-1), V(state_index_-1), X(state_index_), V(state_index_), *preint_dynamics); // TODO check
-    graph_.add(dynamics_factor);
-    dynamics_preintegrated_->resetIntegration();
+    // PreintegratedCombDynamicsMeasurements *preint_dynamics = dynamic_cast<PreintegratedCombDynamicsMeasurements*>(dynamics_preintegrated_);
+    DynamicsFactor dynamics_factor(X(state_index_-1), V(state_index_-1), X(state_index_), V(state_index_), *dynamics_preintegrated_); // TODO check
+    // graph_.add(dynamics_factor);
+    // dynamics_preintegrated_->resetIntegration();
 }
 
 void Optimizer::addRotorsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>> rotors_data_to_add,
                                   std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> imu_data_to_add){
     NonlinearFactorGraph rotorsFactors_;
     std::vector<int> rotorsFactorTypes_;
-
+    
+    PreintegratedCombDynamicsMeasurements *dynamics_preintegrated_ = new PreintegratedCombDynamicsMeasurements();
+    // dynamics_preintegrated_ = std::make_shared<PreintegratedCombDynamicsMeasurements>();
     // std::cout << "adding dynamics factor with " << dynamics_data_to_add.size() << " dynamics measurements and " << imu_data_to_add.size() << " imu measurements" << std::endl;
     for (std::vector<std::pair<uint64_t,Eigen::Matrix<double,5,1>>>::iterator it = rotors_data_to_add.begin() ; it != rotors_data_to_add.end(); ++it)
     {
@@ -202,10 +207,9 @@ void Optimizer::addRotorsFactor(std::vector<std::pair<uint64_t,Eigen::Matrix<dou
         dynamics_preintegrated_->integrateMeasurement(Vector3(T_b[0],T_b[1],T_b[2]), Vector3(prev_imu.second[4],prev_imu.second[5],prev_imu.second[6]), dt);
     }
 
-    PreintegratedCombDynamicsMeasurements *preint_dynamics = dynamic_cast<PreintegratedCombDynamicsMeasurements*>(dynamics_preintegrated_);
-    DynamicsFactor dynamics_factor(X(state_index_-1), V(state_index_-1), X(state_index_), V(state_index_), *preint_dynamics); // TODO check
+    DynamicsFactor dynamics_factor(X(state_index_-1), V(state_index_-1), X(state_index_), V(state_index_), *dynamics_preintegrated_); // TODO check
     graph_.add(dynamics_factor);
-    dynamics_preintegrated_->resetIntegration();
+    // dynamics_preintegrated_->resetParams();
 }
 
 std::vector<std::pair<uint64_t,Eigen::Matrix<double,7,1>>> Optimizer::getImuData(uint64_t start_time, uint64_t end_time){
@@ -368,7 +372,7 @@ void Optimizer::optimizationLoop(){
         // }
 
         // Rotors factor
-        std::cout << "Rotors buffer size is " << rotors_buffer_.size() << std::endl;
+        // std::cout << "Rotors buffer size is " << rotors_buffer_.size() << std::endl;
         std::vector<std::pair<uint64_t, Eigen::Matrix<double, 5, 1>>> rotors_data = getRotorsData(previous_frame_time,current_frame_time);
         if (rotors_data.size() != 0 && imu_data.size() != 0){
             addRotorsFactor(rotors_data, imu_data);
@@ -402,9 +406,10 @@ void Optimizer::optimizationLoop(){
         imu_preintegrated_ -> resetIntegrationAndSetBias(prev_bias_);
         previous_frame_time = current_frame_time;
         image_buffer_.pop_front();
-
+        ros::Time current_ros_time(current_frame_time / (uint64_t) 1e9, current_frame_time % (uint64_t) 1e9);
         nav_msgs::Odometry new_odom_msg;
         new_odom_msg.header.frame_id = "/world";
+        new_odom_msg.header.stamp = current_ros_time;
         new_odom_msg.child_frame_id = "/baselink";
         new_odom_msg.pose.pose.position.x = prev_state_.position().x();
         new_odom_msg.pose.pose.position.y = prev_state_.position().y();

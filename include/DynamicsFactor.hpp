@@ -77,7 +77,7 @@ class PreintegratedCombDynamicsMeasurements : public PreintegrationType {
     /* Ideally there should be a covariance matrix of preintegrated measurements here
      *
      */
-      Eigen::Matrix<double, 6, 6> preintMeasCov_ = 1e3*Eigen::MatrixXd::Identity(6,6);
+      Eigen::Matrix<double, 6, 6> preintMeasCov_ = 1e-3*Eigen::MatrixXd::Identity(6,6);
 
 
     friend class DynamicsFactor;
